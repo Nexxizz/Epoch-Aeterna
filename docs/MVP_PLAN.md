@@ -34,19 +34,27 @@ Godot 4.7.2 erwartet `net8.0` (`rollForward: LatestMajor`) — das installierte 
 > Nicht verwechseln — für dieses Projekt immer `C:\Godot\...mono...` verwenden.
 > Erkennungsmerkmal: der Versionsstring enthält `.mono.`, und neben dem Exe liegt ein `GodotSharp/`-Ordner.
 
-- [ ] Godot-Editor: externen Editor auf VS Code / Rider setzen
-- [ ] Godot-Projekt `EpochAeterna` in `C:\Projects\Epoch-Aeterna` anlegen, Renderer **Forward+** (nötig für SDFGI/SSAO/moderne Beleuchtung)
-- [ ] C#-Solution erzeugen (`Project → Tools → C# → Create C# solution`), TargetFramework `net8.0`
-- [ ] Verifizieren: `dotnet build` läuft durch und ein leeres `Node3D` mit angehängtem C#-Skript startet
-- [ ] `.gitignore` für Godot + .NET (`.godot/`, `bin/`, `obj/`, `*.blend1`, `.mono/`)
-- [ ] `.gitattributes` mit Git-LFS für `*.blend`, `*.glb`, `*.png`, `*.exr`, `*.ogg`
-- [ ] Blender-Pfad in den Godot-Editor-Settings eintragen (`filesystem/import/blender/blender_path`) — erlaubt direkten `.blend`-Import als Fallback
-- [ ] Erster Commit: leeres Projekt startet ohne Fehler
-- [ ] `README.md` mit Build- und Run-Anleitung
+- [ ] Godot-Editor: externen Editor auf VS Code / Rider setzen — *offen, reine Geschmacksfrage; aktuell `dotnet/editor/external_editor = 0` (Godot-intern)*
+- [x] Godot-Projekt `EpochAeterna` in `C:\Projects\Epoch-Aeterna` anlegen, Renderer **Forward+** (nötig für SDFGI/SSAO/moderne Beleuchtung)
+- [x] C#-Solution erzeugen, TargetFramework `net8.0`, `Godot.NET.Sdk/4.7.2`
+- [x] Verifizieren: `dotnet build` läuft durch und ein `Node3D` mit angehängtem C#-Skript startet
+- [x] `.gitignore` für Godot + .NET (`.godot/`, `bin/`, `obj/`, `*.blend1`, `.mono/`)
+- [x] `.gitattributes` mit Git-LFS für `*.blend`, `*.glb`, `*.png`, `*.exr`, `*.ogg` (+ `git lfs install --local`)
+- [x] Blender-Pfad in den Godot-Editor-Settings — war bereits gesetzt: `C:/Program Files/Blender Foundation/Blender 5.2/blender.exe`
+- [x] Erster Commit: Projekt startet ohne Fehler
+- [x] `README.md` mit Build- und Run-Anleitung
+
+**Verifikation Phase 0** (alle Befehle fehlerfrei):
+
+| Prüfung | Ergebnis |
+|---|---|
+| `dotnet build` | 0 Warnungen, 0 Fehler, 6,0 s |
+| Headless-Import | `reimport DONE`, keine Fehler |
+| Headless-Lauf | gibt `Bootstrap OK`, Renderer `forward_plus` aus |
 
 ### Ordnerstruktur festlegen
 
-- [ ] Struktur anlegen und committen:
+- [x] Struktur anlegen und committen:
 
 ```
 EpochAeterna/

@@ -1,0 +1,29 @@
+# Godot 4+
+.godot/
+/android/
+/build/
+/export/
+*.translation
+
+# .NET / C#
+bin/
+obj/
+.mono/
+*.user
+*.userprefs
+*.suo
+.vs/
+.idea/
+
+# Blender
+*.blend1
+*.blend2
+*.blend3
+
+# Godot export presets can contain credentials/keystore paths
+export_presets.cfg
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
