@@ -9,7 +9,10 @@ rounding what should be round.
 from __future__ import annotations
 
 import math
+import random
+
 import bpy
+from mathutils import Vector
 
 
 def _finish(obj, bevel: float, segments: int, smooth_angle: float):
@@ -93,6 +96,100 @@ def wedge_roof(name: str, width: float, depth: float, height: float,
             vertex.co.y = 0.0
 
     return _finish(obj, 0.0, 0, 35.0)
+
+
+def strut(name: str, start, end, width: float = 0.15, thickness: float = 0.0,
+          bevel: float = 0.02):
+    """A beam spanning two points.
+
+    The workhorse for hand-built structures: leaning poles, ridge beams, rack
+    frames. Expressing them as "from here to there" keeps the asset scripts
+    readable, instead of burying every pole in its own rotation matrix.
+    """
+    start = Vector(start)
+    end = Vector(end)
+    delta = end - start
+    length = delta.length
+
+    obj = box(name, (width, thickness or width, length), bevel=bevel)
+
+    # Point the box's local Z along the beam, then move it to the midpoint.
+    obj.rotation_euler = delta.to_track_quat("Z", "Y").to_euler()
+    obj.location = (start + end) * 0.5
+    return obj
+
+
+def radial_panel(name: str, angle: float, base_radius: float, base_z: float,
+                 top_radius: float, top_z: float, width: float,
+                 thickness: float = 0.08, bevel: float = 0.01, segments: int = 2):
+    """A panel leaning inward at a given azimuth, with its width kept tangential.
+
+    ``strut`` cannot be used for this: it derives the beam's roll from a world-up
+    reference, so the width axis ends up pointing in an arbitrary direction. On a
+    roof made of panels that leaves gaps you can see straight through. Here the
+    rotation is built explicitly — tilt around Y, then azimuth around Z — which
+    keeps the width running along the circle.
+    """
+    dr = top_radius - base_radius
+    dz = top_z - base_z
+    length = math.hypot(dr, dz)
+
+    # Local X is thickness, local Y is width (tangential), local Z is length.
+    obj = box(name, (thickness, width, length), bevel=bevel, segments=segments)
+
+    mid_radius = (base_radius + top_radius) * 0.5
+    obj.location = (
+        math.cos(angle) * mid_radius,
+        math.sin(angle) * mid_radius,
+        (base_z + top_z) * 0.5,
+    )
+    obj.rotation_euler = (0.0, math.atan2(dr, dz), angle)
+    return obj
+
+
+def limb(name: str, start, end, radius_start: float, radius_end: float = 0.0,
+         vertices: int = 8, smooth_angle: float = 60.0):
+    """A tapered cylinder spanning two points.
+
+    What turns a blocky figure into a body: arms, legs and torsos are round and
+    they get thinner towards the joints. Boxes cannot do either, and at RTS
+    distance the silhouette is all that carries the impression.
+    """
+    start = Vector(start)
+    end = Vector(end)
+    delta = end - start
+    length = delta.length
+
+    bpy.ops.mesh.primitive_cone_add(
+        radius1=radius_start,
+        radius2=radius_end if radius_end > 0.0 else radius_start * 0.6,
+        depth=length,
+        vertices=vertices)
+
+    obj = bpy.context.active_object
+    obj.name = name
+    obj.rotation_euler = delta.to_track_quat("Z", "Y").to_euler()
+    obj.location = (start + end) * 0.5
+
+    return _finish(obj, 0.0, 0, smooth_angle)
+
+
+def boulder(name: str, radius: float, location, rng: random.Random,
+            flatten: float = 0.65):
+    """An irregular rock. Squashed and randomly turned so no two look alike."""
+    obj = sphere(name, radius, location=location, segments=6, rings=4, smooth_angle=25.0)
+
+    obj.scale = (
+        rng.uniform(0.8, 1.25),
+        rng.uniform(0.8, 1.25),
+        flatten * rng.uniform(0.8, 1.2),
+    )
+    obj.rotation_euler = (
+        rng.uniform(-0.25, 0.25),
+        rng.uniform(-0.25, 0.25),
+        rng.uniform(0.0, math.tau),
+    )
+    return obj
 
 
 def apply_transforms(obj) -> None:

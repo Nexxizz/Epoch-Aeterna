@@ -20,6 +20,7 @@ MaxHealth = 90.0
 Armor = 1.0
 VisionRange = 13.0
 RequiredAgeIndex = 0
+TurnSpeedDegrees = 900.0
 MoveSpeed = 2.9
 Radius = 0.38
 PopulationCost = 1

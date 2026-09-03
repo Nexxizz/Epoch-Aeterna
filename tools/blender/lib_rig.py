@@ -92,12 +92,23 @@ def humanoid(name: str, height: float = 1.8):
     return armature
 
 
-def bind(meshes, armature) -> None:
-    """Parent the mesh to the armature with automatic weights.
+def assign_to_bone(obj, bone_name: str):
+    """Weight every vertex of an object rigidly to one bone.
 
-    Automatic weights are good enough for blocky placeholder geometry and for the
-    silhouette-level detail an RTS camera ever shows. Hand-painted weights would
-    be wasted effort at this distance.
+    Used for stiff parts — fur strips, a belt, a carried axe. They do not bend,
+    they follow whatever they are attached to, and saying so explicitly is both
+    cheaper and more predictable than asking a solver to guess it.
+    """
+    group = obj.vertex_groups.new(name=bone_name)
+    group.add(range(len(obj.data.vertices)), 1.0, "REPLACE")
+    return obj
+
+
+def bind(meshes, armature) -> None:
+    """Skin meshes to the armature with automatic weights.
+
+    Suitable for the body itself, where a continuous surface has to bend across
+    joints. Stiff accessories should use :func:`bind_rigid` instead.
     """
     if not isinstance(meshes, (list, tuple)):
         meshes = [meshes]
@@ -109,10 +120,40 @@ def bind(meshes, armature) -> None:
     bpy.context.view_layer.objects.active = armature
 
     bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    _repair(meshes)
 
-    # Automatic weighting leaves the mesh data internally inconsistent, which the
-    # glTF exporter reports as "mesh is not valid". validate() repairs it in
-    # place; running it before binding would be too early to help.
+
+def bind_rigid(meshes, armature) -> None:
+    """Attach meshes that already carry their own vertex groups.
+
+    Automatic weighting is deliberately *not* used here. It solves each mesh on
+    its own and does badly on the loose islands clothing is made of: a hem strip
+    is a small floating box with nothing to propagate weights along, so the
+    solver spreads them across whatever happens to be near and the garment tears
+    itself apart as soon as the body moves.
+    """
+    if not isinstance(meshes, (list, tuple)):
+        meshes = [meshes]
+
+    bpy.ops.object.select_all(action="DESELECT")
+    for mesh_obj in meshes:
+        mesh_obj.select_set(True)
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+
+    # Plain ARMATURE parenting keeps the vertex groups that are already there.
+    # ARMATURE_NAME would instead create empty groups for every bone and wipe
+    # them — which silently drops the carried axe.
+    bpy.ops.object.parent_set(type="ARMATURE")
+    _repair(meshes)
+
+
+def _repair(meshes) -> None:
+    """Fix mesh data left inconsistent by skinning.
+
+    The glTF exporter reports it as "mesh is not valid"; validate() repairs it
+    in place. Running it before binding would be too early to help.
+    """
     for mesh_obj in meshes:
         if mesh_obj.data.validate(verbose=False):
             print(f"[rig] repaired mesh data of '{mesh_obj.name}' after skinning")

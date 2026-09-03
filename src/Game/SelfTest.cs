@@ -294,6 +294,21 @@ public static class SelfTest
         Check("Unit moves", !unit.Position.IsEqualApprox(start));
         Check("Interpolation state populated", !unit.PreviousPosition.IsEqualApprox(unit.Position));
 
+        // A Godot node rotated by theta around Y has forward (-sin, -cos). This
+        // caught a sign error that made every unit walk sideways or backwards.
+        //
+        // Compared against the step of a single tick, not against the net
+        // displacement: the path bends around the town centre, so the two are
+        // not the same thing.
+        for (int i = 0; i < 10; i++) world.Tick();
+
+        Vector2 before = unit.Position;
+        world.Tick();
+        Vector2 step = unit.Position - before;
+
+        Check("Unit faces its direction of travel",
+            step.LengthSquared() > 1e-6f && Facing.ToDirection(unit.Rotation).Dot(step.Normalized()) > 0.9f);
+
         for (int i = 0; i < 400 && unit.Order == UnitOrder.Move; i++) world.Tick();
 
         Check("Target reached", unit.Position.DistanceTo(target) < 1.5f);

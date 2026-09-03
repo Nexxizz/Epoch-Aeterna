@@ -310,7 +310,19 @@ EpochAeterna/
 - [x] Namensschema: `SK_` für Armatures, `MAT_` für Materialien
   - **Abweichung:** Die `.glb`-Dateinamen entsprechen den Definitions-IDs (`unit_settler.glb`, nicht `unt_settler`). Damit ist das Modell eindeutig seiner `.tres` zugeordnet.
 - [x] Export: **glTF 2.0 binary (`.glb`)**, „+Y Up", nur Auswahl, Animationen als NLA-Strips
-- [x] Polybudget wird bei jedem Build gemessen und ausgegeben
+- [x] Polybudget nach Kategorie, wird bei jedem Build gemessen und ausgegeben:
+
+  | Kategorie | Budget | Bisher gemessen |
+  |---|---|---|
+  | Ressourcenvorkommen, Requisiten | 150–800 | Baum 268 |
+  | Einheiten | 1.500–3.000 | Siedler 2.266 |
+  | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | 1.500–4.000 | — |
+  | Große Gebäude (Rathaus, Kaserne, Schießstand) | 4.000–10.000 | Rathaus 6.734 |
+
+  Die Vorkommen sind der eigentliche Posten: Auf einer 128×128-Karte stehen rund 280 davon,
+  also etwa 75.000 Dreiecke allein für Bäume und Felsen — mehr als alle Gebäude und Einheiten
+  zusammen. Wer dort 800 statt 270 Dreiecke verbaut, verdreifacht die Grundlast der Szene.
+  - [ ] LOD1/LOD2 über Godots Auto-LOD — erst sinnvoll, wenn viele Modelle gleichzeitig auf der Karte stehen (Phase 8)
 - [x] Team-Color über ein eigens benanntes Material `MAT_teamcolor`
   - **Abweichung:** Der Plan sah eine Maske im Alphakanal des Albedo vor. Ohne Texturen gäbe es dafür noch keinen Kanal; ein Materialname funktioniert sofort, überlebt Geometrieänderungen und lässt sich später zusätzlich mit einer Maske kombinieren.
 - [x] Ein Material pro Objekt, `.import`-Presets werden mitversioniert
@@ -342,7 +354,7 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 | Asset | Dreiecke | Besonderheit |
 |---|---|---|
 | `res_tree` | 268 | Geometrie und Origin-Konvention |
-| `bld_towncenter` | 872 | Grundfläche exakt 8 m = 4 Kacheln, fünf Materialien, Team-Color-Banner |
+| `bld_towncenter` | 6.734 | Grundfläche exakt 8 m = 4 Kacheln, vier Materialien, Team-Color-Banner |
 | `unit_settler` | 1.404 | Armature, automatische Gewichtung, 4 Animationsclips |
 
 ```bash
@@ -370,13 +382,104 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 
 ---
 
+### 4.4 Worauf bei neuen Grafiken zu achten ist
+
+> Jede Regel hier steht für einen Fehler, der beim Bau der ersten drei Assets
+> tatsächlich aufgetreten ist. Die Liste ersetzt kein Auge, aber sie erspart es,
+> dieselben Stunden noch dreizehn Mal zu verlieren.
+
+**Geometrie und Export**
+
+- **Ganze Assets gründen, nie einzelne Teile.** `ground_assembly()` setzt den tiefsten Punkt
+  des *gesamten* Objekts auf z = 0. Pro Materialgruppe aufgerufen landet jedes Teil einzeln
+  auf dem Boden — das Rathaus fiel dabei in einen Haufen zusammen.
+- **Bevel sofort anwenden, nicht als Modifier stehen lassen.** Beim Verschmelzen überlebt nur
+  der Stack des *ersten* Objekts und wird beim Export auf alles angewendet. Auf sich
+  schneidenden Körpern erzeugt das entartete Flächen und die Meldung „mesh is not valid".
+- **Bevel-Segmente sind der teuerste Posten.** Zwei Segmente kosten je Kästchen rund
+  140 Dreiecke für eine Kante, die auf Kameradistanz niemand sieht. Bei den Fellteilen des
+  Siedlers und den Hautbahnen des Rathauses hat `segments=1` beide Assets fast halbiert.
+- **Vorne ist −Y in Blender.** Der Exporter bildet `gltf_z = −blender_y` ab, ein so gebautes
+  Modell landet also auf **+Z** — Godots „vorne" ist aber −Z. `lib_scene` dreht deshalb beim
+  Export um 180°. Nie im Spielcode gegensteuern; die Blickrichtung gehört in `Facing`.
+- **Grundfläche muss exakt zur Simulation passen.** Kacheln × 2 m. Ein Rathaus mit
+  `Footprint = Vector2i(4, 4)` ist 8 m breit — der Modellkörper etwas schmaler, damit
+  Nachbargebäude sich nicht berühren.
+- **Team-Farbe über das Material `MAT_teamcolor`.** Der `ViewManager` sucht es beim Namen und
+  ersetzt sein Albedo. Ein Materialname überlebt Geometrieänderungen, ein Slot-Index nicht.
+
+**Rigging und Gewichtung**
+
+- **Zusammengesetzte Figuren nicht automatisch gewichten.** Die Wärmeverteilung arbeitet
+  volumetrisch: Bei einer Figur aus getrennten Zylindern bekommen Rumpfpunkte nahe der
+  Schulter Anteile vom Armknochen und werden beim Heben mitgezogen — sichtbar als gedehnte
+  Schwimmhaut zwischen Arm und Körper. Stattdessen jedes Teil per `assign_to_bone()` an genau
+  einen Knochen, dazu **Kugeln in Schulter, Ellbogen und Knie**, die den Drehpunkt abdecken.
+- **`parent_set(type="ARMATURE")`**, nicht `ARMATURE_NAME`. Letzteres legt leere Knochengruppen
+  an und löscht dabei die eigenen — die getragene Axt verschwand dadurch spurlos.
+- **Zubehör an den Knochen des Teils, auf dem es sitzt.** Der Kragen sitzt auf dem Umhang: hängt
+  der Umhang am `spine` und der Kragen am `chest`, rutscht der Kragen ab, sobald sich die Brust
+  dreht. Getragene Werkzeuge gehören an den Unterarm der führenden Hand.
+- **`validate()` erst *nach* dem Binden.** Die Gewichtung hinterlässt inkonsistente Mesh-Daten;
+  vorher aufgerufen repariert sie nichts.
+
+**Animation**
+
+- **Die lokale Y-Achse läuft *entlang* des Knochens.** Für den Rumpf heißt das: **Y = Drehung**
+  um die Körperachse, **X = Vorwärtsbeuge**, **Z = Seitwärtsneigung**. Eine Rumpfdrehung auf Z
+  kippt die Figur zur Seite, statt sie zu drehen.
+- **Über 90° keine zweite Achse dazunehmen.** Bei XYZ-Euler wird X zuerst angewandt, Y und Z
+  drehen um die *Ruhe*achsen. Ein Arm bei −128° um X plus −26° um Z flog dadurch 0,8 m seitlich
+  weg statt über die Schulter. Für erhobene Arme ist die lokale **Y**-Achse die Senkrechte —
+  damit schwenkt man sie horizontal um den Körper.
+- **Drei Dinge trennen eine Bewegung vom Roboter:** Auf-und-ab des Körpers (über die Position
+  des `root`), Gegendrehung von Hüfte und Schultern, und ungleiches Timing — ein Ausholen ist
+  langsam, ein Schlag schnell.
+- **Bezier statt linear.** Lineare Interpolation ist die auffälligste Roboter-Ursache überhaupt:
+  Der Körper wechselt an jedem Keyframe schlagartig die Richtung.
+- **Der Kopf hält gegen.** Er erbt die Drehung von Brust *und* Wirbelsäule; ohne Gegenwinkel
+  schlackert er beim Zuschlagen um fast 40°.
+- **Werkzeuge zweihändig führen, wo es plausibel ist.** Ein Arm allein an einer großen Axt
+  liest sich als Fuchteln. Handabstand am Stiel: 10–25 cm.
+- **Gliedmaßen dürfen nicht im Rumpf stecken.** Beim Schlag greifen die Arme nach vorn-unten,
+  nicht seitlich herunter — sonst wandert der Ellbogen in die Brust. Nachprüfbar: Abstand des
+  Ellbogens von der Körperachse gegen den Rumpfradius (Taille 14,5 cm, Brust 17,5 cm).
+
+**Blender 5.2**
+
+- `action.fcurves` existiert nicht mehr — Actions liegen seit 4.4 in Layern, Strips und
+  Channel Bags. `lib_anim._fcurves()` bedient beide Varianten.
+- `use_auto_smooth` ist weg; stattdessen `bpy.ops.object.shade_smooth_by_angle()`.
+- Vor dem Export **`view_layer.update()`**, sonst sieht der Exporter eine per Skript gesetzte
+  Transformation nicht und ignoriert sie stillschweigend.
+- Für Vorschaubilder die Farbansicht auf `Standard` stellen. Blenders Standard-AgX entsättigt
+  so stark, dass Holz, Haut und Stein alle gleich beige rendern.
+
+**Vorgehen**
+
+- **Messen statt Augenmaß.** Bei Winkeln über 90° trügt der Augenschein zuverlässig. Positionen
+  von Händen, Ellbogen und Werkzeugen lassen sich in Blender direkt ausrechnen — das hat jeden
+  der Animationsfehler oben schneller geklärt als jedes weitere Rendern.
+- **Vorschau nutzen, nicht das Spiel starten.** `preview.py` rendert jedes Asset aus drei
+  Blickwinkeln und auf Wunsch eine einzelne Animationspose:
+
+  ```bash
+  blender --background --python tools/blender/preview.py -- unit_settler out.png three-quarter "Gather_Chop:13"
+  ```
+
+- **Prüfskripte selbst hinterfragen.** Zwei meiner Kontrollen waren wertlos: eine las nur die
+  Wurzel-Transformation (immer Identität), eine andere maß nach dem Rundlauf die falsche Achse.
+  Entschieden hat am Ende das direkte Auslesen der `.glb`.
+
+---
+
 ## Phase 5 — Asset-Liste MVP 🔴
 
 ### 5.1 Gebäude (7)
 
 | # | Gebäude | Zeitalter | Funktion | Status |
 |---|---|---|---|---|
-| 1 | **Rathaus** | 1 | Siedler ausbilden, Abgabestelle, Zeitalteraufstieg | [ ] Modell [ ] Baustufen [ ] Zeitalter-2-Variante [ ] Ingame |
+| 1 | **Rathaus** | 1 | Siedler ausbilden, Abgabestelle, Zeitalteraufstieg | [x] Modell [ ] Baustufen [ ] Zeitalter-2-Variante [x] Ingame |
 | 2 | **Haus** | 1 | +10 Bevölkerungslimit | [ ] Modell [ ] Baustufen [ ] Ingame |
 | 3 | **Lagerhaus** | 1 | Abgabestelle für Holz / Stein / Gold | [ ] Modell [ ] Baustufen [ ] Ingame |
 | 4 | **Farm** | 1 | Erneuerbare Nahrungsquelle | [ ] Modell [ ] Wachstumsstufen [ ] Ingame |
@@ -390,7 +493,7 @@ Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footpri
 
 | # | Einheit | Zeitalter | Rolle | Status |
 |---|---|---|---|---|
-| 1 | **Siedler** | 1 | Sammeln, Bauen, Reparieren | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
+| 1 | **Siedler** | 1 | Sammeln, Bauen, Reparieren | [x] Modell [x] Rig [x] Anims [x] Ingame |
 | 2 | **Späher** | 1 | Schnell, große Sicht, schwach | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
 | 3 | **Speerkämpfer** | 1 | Nahkampf-Grundeinheit | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
 | 4 | **Schleuderer** | 1 | Fernkampf, schwach im Nahkampf | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
@@ -400,17 +503,23 @@ Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footpri
 Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 — Siedler zusätzlich: `Gather_Chop`, `Gather_Mine`, `Build`, `Carry_Walk`
 
+- [x] Gemeinsames Skelett und Clip-Vokabular in `lib_rig` / `lib_anim` — eine einmal angelegte
+  Bewegung läuft auf jeder humanoiden Einheit
+- [x] Siedler hat `Idle`, `Walk`, `Gather_Chop`, `Death`
+  - [ ] `Run`, `Attack`, `Gather_Mine`, `Build`, `Carry_Walk` fehlen noch
+- [x] Zufälliger Anim-Offset pro Einheit, damit Gruppen nicht synchron zappeln (`ModelAnimator`)
 - [ ] Animation-Events für Trefferzeitpunkt (`OnHitFrame`) und Werkzeugschlag (`OnGatherHit`)
 - [ ] Blend zwischen Idle / Walk über `AnimationTree` + `BlendSpace1D`
-- [ ] Zufälliger Anim-Offset pro Einheit, damit Gruppen nicht synchron zappeln
+- [ ] Fußabrollung beim Gehen — die Knöchel bleiben derzeit steif
 
 ### 5.3 Umgebung & Ressourcen (5)
 
-- [ ] Baum (3 Varianten + gefällter Stumpf)
+- [x] Baum — eine Variante steht
+  - [ ] Zwei weitere Varianten und gefällter Stumpf
 - [ ] Felsen / Steinbruch
 - [ ] Goldader
 - [ ] Beerenbusch
-- [ ] Bodendeko: Grasbüschel, kleine Steine (MultiMesh)
+- [x] Bodendeko: Grasbüschel, kleine Steine als MultiMesh, vom Nebel des Krieges miterfasst
 
 ### 5.4 Effekte & Audio 🟡
 

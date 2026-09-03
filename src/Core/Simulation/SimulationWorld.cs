@@ -198,8 +198,19 @@ public sealed class SimulationWorld
         return Entities.Add(unit);
     }
 
+    /// <summary>
+    /// Buildings face the default camera unless told otherwise.
+    /// </summary>
+    /// <remarks>
+    /// A model's front is -Z, while the camera starts looking *along* -Z and
+    /// therefore sees an object's +Z side. Without this every building would
+    /// present its back to the player on the default view — entrances, banners
+    /// and fire pits all pointing away.
+    /// </remarks>
+    public const float DefaultBuildingRotation = Mathf.Pi;
+
     public Building? SpawnBuilding(string definitionId, int ownerId, Vector2 position,
-        bool underConstruction = false, float rotation = 0f)
+        bool underConstruction = false, float rotation = DefaultBuildingRotation)
     {
         BuildingDefinition? definition = Definitions.GetBuilding(definitionId);
         if (definition is null)

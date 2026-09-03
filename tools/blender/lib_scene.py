@@ -5,13 +5,17 @@ without having to remember them:
 
   * 1 Blender unit = 1 metre
   * origin sits at the centre of the footprint, on the ground (z = 0)
-  * models face -Y in Blender, which the glTF exporter turns into Godot's -Z "forward"
+  * models are authored facing -Y in Blender, which is what Blender's own front
+    view looks at, and are turned 180 degrees on export so they end up facing
+    Godot's -Z "forward"
   * all transforms applied, one export per asset, glTF 2.0 binary (.glb)
 """
 
 from __future__ import annotations
 
+import math
 import os
+
 import bpy
 
 # Repository root, derived from this file's location (tools/blender/lib_scene.py).
@@ -64,13 +68,15 @@ def export_glb(objects, category: str, name: str) -> str:
     path = os.path.join(target_dir, f"{name}.glb")
 
     select(objects)
+    restore = _face_godot_forward(objects)
 
     bpy.ops.export_scene.gltf(
         filepath=path,
         export_format="GLB",
         use_selection=True,
-        # Blender is Z-up, Godot is Y-up. The exporter converts, which is also what
-        # turns our -Y "front" into Godot's -Z.
+        # Blender is Z-up, Godot is Y-up; the exporter converts. It maps
+        # gltf_z = -blender_y, which is why the facing has to be corrected
+        # separately — see _face_godot_forward.
         export_yup=True,
         # Bake modifiers into the exported mesh — Godot should not have to know
         # about bevels and weighted normals.
@@ -84,7 +90,41 @@ def export_glb(objects, category: str, name: str) -> str:
         export_lights=False,
     )
 
+    restore()
     return path
+
+
+def _face_godot_forward(objects):
+    """Turn the asset around so its authored front ends up as Godot's forward.
+
+    The glTF exporter converts Blender's Z-up to Y-up by mapping
+    ``gltf_z = -blender_y``. An asset authored facing -Y therefore arrives
+    facing *+Z*, while Godot treats -Z as forward — so every model would walk
+    backwards. Rotating by 180 degrees here fixes it in the one place that owns
+    the convention, instead of every asset script having to know about it.
+
+    Only parentless objects are turned; children (meshes under an armature)
+    inherit the rotation and would otherwise be turned twice.
+
+    Returns a callable that restores the original rotations.
+    """
+    roots = [obj for obj in objects if obj.parent is None]
+    original = [(obj, tuple(obj.rotation_euler)) for obj in roots]
+
+    for obj in roots:
+        obj.rotation_euler.z += math.pi
+
+    # The exporter reads the evaluated dependency graph, which does not yet know
+    # about a transform set from a script. Without this the rotation is silently
+    # ignored and the asset exports facing the wrong way.
+    bpy.context.view_layer.update()
+
+    def restore():
+        for obj, rotation in original:
+            obj.rotation_euler = rotation
+        bpy.context.view_layer.update()
+
+    return restore
 
 
 def report(path: str) -> None:

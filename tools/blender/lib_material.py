@@ -92,5 +92,15 @@ def cloth():
     return pbr("cloth", (0.55, 0.47, 0.36), roughness=0.95)
 
 
+def hide():
+    """Cured animal hide — the Stone Age's roofing and cladding material."""
+    return pbr("hide", (0.46, 0.34, 0.23), roughness=0.9)
+
+
+def hair():
+    """Hair and beard — dark enough that a head does not read as bald."""
+    return pbr("hair", (0.16, 0.11, 0.07), roughness=0.95)
+
+
 def skin():
     return pbr("skin", (0.68, 0.51, 0.39), roughness=0.75)

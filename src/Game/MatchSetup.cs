@@ -135,7 +135,11 @@ public static class MatchSetup
         {
             float angle = Mathf.Pi * (i + 0.5f) / settlerCount;
             var offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-            world.SpawnUnit(SettlerId, ownerId, position + offset);
+
+            // Facing away from the town centre, which is the direction they will
+            // be sent in. Spawning them all facing one fixed way means the first
+            // order of the match makes the whole group turn on the spot.
+            world.SpawnUnit(SettlerId, ownerId, position + offset, Facing.ToRotation(offset));
         }
     }
 

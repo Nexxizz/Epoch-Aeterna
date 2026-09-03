@@ -25,6 +25,15 @@ public sealed class MovementSystem : ISimulationSystem
     /// <summary>Within this distance of the final target the unit decelerates.</summary>
     private const float SlowdownDistance = 1.5f;
 
+    /// <summary>Speed factor for a unit that is still facing the wrong way.</summary>
+    /// <remarks>
+    /// Deliberately mild. Slowing a turning unit right down does not hide the
+    /// turn, it turns it into a pivot on the spot — which is more noticeable,
+    /// not less. What actually hides it is turning quickly, which is a property
+    /// of the unit (TurnSpeedDegrees), not of this system.
+    /// </remarks>
+    private const float TurningSpeedFactor = 0.7f;
+
     private readonly NavGrid _grid;
 
     public string Name => "Movement";
@@ -74,6 +83,13 @@ public sealed class MovementSystem : ISimulationSystem
         float speed = unit.MoveSpeed;
         if (isFinalWaypoint && distance < SlowdownDistance) speed *= distance / SlowdownDistance;
 
+        // Set off along the way the unit is actually facing, and pick up speed as
+        // it comes round. At full speed from the first tick a unit ordered to go
+        // backwards slides sideways for a third of a second before its heading
+        // catches up, which reads as the model skating rather than turning.
+        float alignment = Mathf.Max(0f, Facing.ToDirection(unit.Rotation).Dot(direction));
+        speed *= Mathf.Lerp(TurningSpeedFactor, 1f, alignment);
+
         // The route was checked once, but buildings may have blocked it since.
         Vector2 next = unit.Position + direction * Mathf.Min(speed * deltaSeconds, distance);
         Vector2I cell = _grid.WorldToCell(next);
@@ -105,8 +121,7 @@ public sealed class MovementSystem : ISimulationSystem
     /// <summary>Turns the unit towards its heading at a limited rate, rather than snapping.</summary>
     private static void TurnTowards(Unit unit, Vector2 direction, float deltaSeconds)
     {
-        // Godot convention: -Z is "forward". The sim works on XZ, hence atan2(x, -y).
-        float desired = Mathf.Atan2(direction.X, -direction.Y);
+        float desired = Facing.ToRotation(direction);
         float maxStep = unit.TurnSpeedRadians * deltaSeconds;
 
         float difference = Mathf.Wrap(desired - unit.Rotation, -Mathf.Pi, Mathf.Pi);

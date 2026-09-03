@@ -233,10 +233,6 @@ public sealed class CombatSystem : ISimulationSystem
 
     private static void FaceTarget(Unit unit, Vector2 target)
     {
-        Vector2 delta = target - unit.Position;
-        if (delta.LengthSquared() < 0.0001f) return;
-
-        // Godot convention: -Z is "forward". The sim works on XZ, hence atan2(x, -y).
-        unit.Rotation = Mathf.Atan2(delta.X, -delta.Y);
+        unit.Rotation = Facing.LookAt(unit.Position, target);
     }
 }
