@@ -78,6 +78,7 @@ public static class SelfTest
         Check("Ages loaded", definitions.Ages.Count >= 2);
         Check("Ages sorted by index", definitions.GetAge(0)?.Index == 0 && definitions.GetAge(1)?.Index == 1);
         Check("Settler cost read from .tres", definitions.GetUnit("unit_settler")?.Cost?.Food == 50);
+        Check("Settler training-menu image loaded", definitions.GetUnit("unit_settler")?.Icon is not null);
         Check("Town centre knows its trainable units",
             definitions.GetBuilding("bld_towncenter")?.TrainableUnitIds.Length == 2);
 

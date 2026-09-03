@@ -240,7 +240,8 @@ EpochAeterna/
 - [x] Abbruch mit Rückerstattung
 - [x] Sammelpunkt setzbar
 - [x] Bevölkerungsprüfung hält die Produktion an, statt den Befehl zu verwerfen
-- [ ] Fortschrittsbalken und Sammelpunkt-Flagge im HUD — Phase 6
+- [x] Fortschrittsbalken für die gewählte Produktionsstätte im HUD
+- [ ] Sammelpunkt-Flagge im HUD — Phase 6
 
 ### 3.4 Kampf
 
@@ -372,7 +373,7 @@ Trümmer-Mesh.
 | Godot-Import | fehlerfrei |
 | Animationsclips | `Idle`, `Walk`, `Run`, `Carry_Walk`, `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Attack`, `Death` + Skeleton3D bestätigt |
 | Team-Color | Banner und Siedler nehmen die Spielerfarbe an |
-| Selbsttest | 130/130, Exit-Code 0 |
+| Selbsttest | 131/131, Exit-Code 0 |
 
 > Genau die Fehler, die der Plan an dieser Stelle vorhergesagt hat, sind aufgetreten —
 > und zwar an drei Assets statt an sechzehn:
@@ -567,9 +568,10 @@ Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 - [ ] Ressourcenleiste oben: Nahrung, Holz, Stein, Gold, Bevölkerung (aktuell/max), Zeitalter
 - [ ] Selektionspanel unten: Portrait, Name, HP, Werte; bei Mehrfachauswahl Icon-Gitter
 - [ ] Aktionsleiste: kontextabhängige Buttons (Bauen, Ausbilden, Aufsteigen, Stopp, Abriss) mit Tastenkürzeln
+  - [x] Rathaus: Siedlerbild, Kosten, Warteschlange und Ausbildungsfortschritt
 - [ ] Bau-Menü mit Kosten-Tooltip; gesperrte Einträge ausgegraut samt Begründung ("Erfordert Kupferzeit")
 - [ ] Minimap: Terrain, Fog of War, eigene und feindliche Einheiten als Punkte, Kamera-Rahmen, Klick zum Springen
-- [ ] Produktionswarteschlange mit Fortschrittsbalken
+- [x] Produktionswarteschlange mit Fortschrittsbalken für das Rathaus
 - [ ] Benachrichtigungen: "Zu wenig Nahrung", "Bevölkerungslimit erreicht", "Wir werden angegriffen!"
 - [ ] Hauptmenü: Spiel starten, Optionen, Beenden
 - [ ] Optionen: Auflösung, Vollbild, Lautstärke, Grafik-Preset, Scroll-Geschwindigkeit

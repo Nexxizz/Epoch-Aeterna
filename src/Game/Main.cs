@@ -156,6 +156,10 @@ public partial class Main : Node3D
         _worldRoot.AddChild(buildMenu);
         buildMenu.Attach(_definitions, _selection, _placement);
 
+        var trainingMenu = new TrainingMenu { Name = "TrainingMenu" };
+        _worldRoot.AddChild(trainingMenu);
+        trainingMenu.Attach(World, _selection, LocalPlayerId);
+
         var endScreen = new MatchEndScreen { Name = "MatchEndScreen" };
         _worldRoot.AddChild(endScreen);
         endScreen.Attach(World, LocalPlayerId);

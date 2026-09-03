@@ -107,6 +107,7 @@ public sealed partial class BuildMenu : CanvasLayer
 
     private void Refresh()
     {
-        _panel.Visible = _selection?.SelectedBuilders().Length > 0;
+        _panel.Visible = _selection?.SelectedBuilding() is null &&
+                         _selection?.SelectedBuilders().Length > 0;
     }
 }
