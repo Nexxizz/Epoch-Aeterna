@@ -28,7 +28,7 @@ for extra in (HERE, os.path.join(HERE, "assets")):
 
 import lib_scene  # noqa: E402  (path setup has to come first)
 
-RESOLUTION = (900, 700)
+RESOLUTION = (640, 640)
 
 
 VIEWS = {
@@ -40,7 +40,7 @@ VIEWS = {
 
 def _arguments():
     if "--" not in sys.argv:
-        return "bld_towncenter", None, "three-quarter"
+        return "bld_towncenter", None, "three-quarter", None
 
     rest = sys.argv[sys.argv.index("--") + 1:]
     name = rest[0] if rest else "bld_towncenter"
@@ -131,28 +131,6 @@ def _apply_pose(objects, clip: str, frame: int) -> None:
     """Put the armature into one frame of a named clip.
 
     The clips live on NLA strips, so the action has to be made active again
-    before the frame can be evaluated.
-    """
-    armature = next((obj for obj in objects if obj.type == "ARMATURE"), None)
-    if armature is None or armature.animation_data is None:
-        print(f"[preview] no armature with animation, ignoring pose {clip}:{frame}")
-        return
-
-    action = bpy.data.actions.get(clip)
-    if action is None:
-        print(f"[preview] unknown clip '{clip}'")
-        return
-
-    armature.animation_data.action = action
-    bpy.context.scene.frame_set(frame)
-    bpy.context.view_layer.update()
-    print(f"[preview] pose {clip} frame {frame}")
-
-
-def _apply_pose(objects, clip: str, frame: int) -> None:
-    """Put the armature into one frame of a named clip.
-
-    The clips live on NLA strips, so the action has to be made active again
     before a frame can be evaluated.
     """
     armature = next((obj for obj in objects if obj.type == "ARMATURE"), None)
@@ -165,9 +143,20 @@ def _apply_pose(objects, clip: str, frame: int) -> None:
         print(f"[preview] unknown clip '{clip}'")
         return
 
+    # NLA tracks are all enabled after the procedural build. Leaving them on
+    # would blend every clip into the requested pose (and reveal every prop),
+    # which is the opposite of an animation preview.
+    for track in armature.animation_data.nla_tracks:
+        track.mute = True
+
     armature.animation_data.action = action
     bpy.context.scene.frame_set(frame)
     bpy.context.view_layer.update()
+    equipment = ("tool_axe", "tool_pick", "tool_spear", "tool_basket")
+    scales = ", ".join(
+        f"{name}={tuple(round(value, 3) for value in armature.pose.bones[name].scale)}"
+        for name in equipment if name in armature.pose.bones)
+    print(f"[preview] equipment {scales}")
     print(f"[preview] pose {clip} frame {frame}")
 
 
@@ -188,6 +177,8 @@ def main() -> int:
     _frame(objects, view)
 
     scene = bpy.context.scene
+    scene.render.engine = "BLENDER_EEVEE"
+    scene.render.image_settings.file_format = "PNG"
     scene.render.resolution_x, scene.render.resolution_y = RESOLUTION
     scene.render.film_transparent = False
 

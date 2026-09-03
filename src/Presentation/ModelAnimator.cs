@@ -1,4 +1,5 @@
 using Godot;
+using EpochAeterna.Core.Data;
 using EpochAeterna.Core.Entities;
 
 namespace EpochAeterna.Presentation;
@@ -16,11 +17,18 @@ public sealed class ModelAnimator
 {
     public const string Idle = "Idle";
     public const string Walk = "Walk";
+    public const string Run = "Run";
+    public const string Carry = "Carry_Walk";
+    public const string GatherFood = "Gather_Food";
     public const string Chop = "Gather_Chop";
+    public const string Mine = "Gather_Mine";
+    public const string Build = "Build";
+    public const string Attack = "Attack";
     public const string Death = "Death";
 
     /// <summary>Clips that should repeat rather than freeze on their last frame.</summary>
-    private static readonly string[] Looping = { Idle, Walk, Chop };
+    private static readonly string[] Looping =
+        { Idle, Walk, Run, Carry, GatherFood, Chop, Mine, Build, Attack };
 
     private readonly AnimationPlayer? _player;
     private string _current = string.Empty;
@@ -50,8 +58,15 @@ public sealed class ModelAnimator
 
         string wanted = unit switch
         {
-            { Order: UnitOrder.Gather, GatherPhase: GatherPhase.Harvesting } => Chop,
-            { Order: UnitOrder.Build } when !unit.HasPath => Chop,
+            { Order: UnitOrder.Gather, GatherPhase: GatherPhase.Harvesting,
+                CarriedResource: ResourceType.Food } => GatherFood,
+            { Order: UnitOrder.Gather, GatherPhase: GatherPhase.Harvesting,
+                CarriedResource: ResourceType.Wood } => Chop,
+            { Order: UnitOrder.Gather, GatherPhase: GatherPhase.Harvesting } => Mine,
+            { Order: UnitOrder.Build } when !unit.HasPath => Build,
+            { Order: UnitOrder.Attack } when !unit.HasPath => Attack,
+            { Order: UnitOrder.AttackMove } when unit.HasPath => Run,
+            _ when unit.HasPath && unit.CarriedAmount > 0f => Carry,
             _ when unit.HasPath => Walk,
             _ => Idle,
         };

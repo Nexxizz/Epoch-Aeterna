@@ -315,7 +315,7 @@ EpochAeterna/
   | Kategorie | Budget | Bisher gemessen |
   |---|---|---|
   | Ressourcenvorkommen, Requisiten | 150–800 | Baum 268 |
-  | Einheiten | 1.500–3.000 | Siedler 2.266 |
+  | Einheiten | kein starres Limit — visuelle Lesbarkeit hat Vorrang | Siedler 3.830 |
   | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | 1.500–4.000 | — |
   | Große Gebäude (Rathaus, Kaserne, Schießstand) | 4.000–10.000 | Rathaus 6.734 |
 
@@ -330,11 +330,11 @@ EpochAeterna/
 
 ### 4.2 Werkzeuge
 
-- [x] `tools/blender/lib_scene.py` — Szenen-Reset, Exportkonventionen an einer Stelle
+- [x] `tools/blender/lib_scene.py` — Szenen-Reset, Exportkonventionen und sperrsicherer temporärer GLB-Export an einer Stelle
 - [x] `tools/blender/lib_mesh.py` — Grundkörper, Bevel-/Smooth-Nachbearbeitung, Verschmelzen, Gründung
-- [x] `tools/blender/lib_material.py` — PBR-Palette (Holz, Rinde, Laub, Stroh, Lehm, Stein, Metall, Stoff, Haut) plus Team-Color
-- [x] `tools/blender/lib_rig.py` — humanoides Standard-Armature, automatische Gewichtung
-- [x] `tools/blender/lib_anim.py` — Keyframe-Generator, Clips als NLA-Strips
+- [x] `tools/blender/lib_material.py` — PBR-Palette (Holz, Rinde, Laub, Stroh, Lehm, Stein, Metall, Stoff, Haut, Fell, Ocker, Knochen, Fasern) plus Team-Color
+- [x] `tools/blender/lib_rig.py` — humanoides Standard-Armature, starre Gewichtung und eigene Ausrüstungs-Bones
+- [x] `tools/blender/lib_anim.py` — Keyframe-Generator, Clips als NLA-Strips und animierte Ausrüstungssichtbarkeit
 - [x] `tools/blender/build_all.py` — baut alle Assets, einzeln ansteuerbar, Fehler stoppen den Lauf nicht
 - [x] Import-Test in Godot: Maßstab, Ausrichtung, Materialien und Animationen bestätigt
 - [ ] Bake-Schritt High-Poly → Normal-Map — braucht High-Poly-Quellen (Phase 5)
@@ -355,7 +355,7 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 |---|---|---|
 | `res_tree` | 268 | Geometrie und Origin-Konvention |
 | `bld_towncenter` | 6.734 | Grundfläche exakt 8 m = 4 Kacheln, vier Materialien, Team-Color-Banner |
-| `unit_settler` | 1.404 | Armature, automatische Gewichtung, 4 Animationsclips |
+| `unit_settler` | 3.830 | detailliertes Armature-Modell, aufgabenspezifische Ausrüstung, 10 Animationsclips |
 
 ```bash
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py
@@ -365,7 +365,7 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 |---|---|
 | Blender-Build | 3/3 Assets, keine Warnungen |
 | Godot-Import | fehlerfrei |
-| Animationsclips | `Idle`, `Walk`, `Gather_Chop`, `Death` + Skeleton3D bestätigt |
+| Animationsclips | `Idle`, `Walk`, `Run`, `Carry_Walk`, `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Attack`, `Death` + Skeleton3D bestätigt |
 | Team-Color | Banner und Siedler nehmen die Spielerfarbe an |
 | Selbsttest | 126/126, Exit-Code 0 |
 
@@ -399,6 +399,10 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 - **Bevel-Segmente sind der teuerste Posten.** Zwei Segmente kosten je Kästchen rund
   140 Dreiecke für eine Kante, die auf Kameradistanz niemand sieht. Bei den Fellteilen des
   Siedlers und den Hautbahnen des Rathauses hat `segments=1` beide Assets fast halbiert.
+- **Kein starres Polygonlimit für Einheiten.** Silhouette, Gelenke, Gesicht und aufgabenspezifische
+  Ausrüstung müssen aus der Spielkamera eindeutig lesbar sein. Dreiecke werden weiterhin gemessen,
+  aber sichtbare Qualität hat Vorrang vor einer willkürlichen Obergrenze; optimiert wird zuerst dort,
+  wo Geometrie weder Silhouette noch Animation verbessert.
 - **Vorne ist −Y in Blender.** Der Exporter bildet `gltf_z = −blender_y` ab, ein so gebautes
   Modell landet also auf **+Z** — Godots „vorne" ist aber −Z. `lib_scene` dreht deshalb beim
   Export um 180°. Nie im Spielcode gegensteuern; die Blickrichtung gehört in `Facing`.
@@ -407,6 +411,12 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
   Nachbargebäude sich nicht berühren.
 - **Team-Farbe über das Material `MAT_teamcolor`.** Der `ViewManager` sucht es beim Namen und
   ersetzt sein Albedo. Ein Materialname überlebt Geometrieänderungen, ein Slot-Index nicht.
+- **Naturmaterialien und Team-Farbe trennen.** Fell, Leder, Ocker, Knochen und Fasern behalten
+  ihre eigenen Farben. `MAT_teamcolor` gehört nur auf deutlich sichtbare Akzente wie Schärpen,
+  Armbänder und Banner — sonst färbt das Spiel die gesamte Figur oder das ganze Gebäude um.
+- **GLB zunächst temporär exportieren.** Ein laufender Godot-Import kann die bestehende Datei kurz
+  sperren. `lib_scene.export_glb()` schreibt deshalb zuerst `.<name>.exporting.glb` und ersetzt die
+  Live-Datei mit kurzen Wiederholungsversuchen; so bleibt bei einer Sperre immer ein gültiges Asset.
 
 **Rigging und Gewichtung**
 
@@ -419,7 +429,9 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
   an und löscht dabei die eigenen — die getragene Axt verschwand dadurch spurlos.
 - **Zubehör an den Knochen des Teils, auf dem es sitzt.** Der Kragen sitzt auf dem Umhang: hängt
   der Umhang am `spine` und der Kragen am `chest`, rutscht der Kragen ab, sobald sich die Brust
-  dreht. Getragene Werkzeuge gehören an den Unterarm der führenden Hand.
+  dreht. Dauerhaft sichtbares Zubehör folgt dem Körper-Bone, aufgabenspezifische Werkzeuge dagegen
+  einem eigenen Slot wie `tool_axe`, `tool_pick`, `tool_spear` oder `tool_basket`. Diese Slots sind
+  an Hand, Unterarm oder Rumpf geparentet und lassen sich pro Clip unabhängig ein- und ausblenden.
 - **`validate()` erst *nach* dem Binden.** Die Gewichtung hinterlässt inkonsistente Mesh-Daten;
   vorher aufgerufen repariert sie nichts.
 
@@ -441,6 +453,13 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
   schlackert er beim Zuschlagen um fast 40°.
 - **Werkzeuge zweihändig führen, wo es plausibel ist.** Ein Arm allein an einer großen Axt
   liest sich als Fuchteln. Handabstand am Stiel: 10–25 cm.
+- **Jeder Clip keyframed alle Ausrüstungs-Bones.** Der benötigte Slot erhält Skalierung `(1, 1, 1)`,
+  alle anderen `(0.001, 0.001, 0.001)`. Fehlt dieser Keyframe, bleiben Korb, Axt, Pickel und Speer
+  gleichzeitig sichtbar. `lib_anim.equipment()` erzeugt die vollständige Tabelle dafür.
+- **Clip-Namen sind ein Vertrag mit `ModelAnimator`.** `Gather_Food`, `Gather_Chop` und
+  `Gather_Mine` werden anhand des Ressourcentyps gewählt, `Carry_Walk` bei getragener Ladung,
+  `Build` beim Bauen und `Attack` bei Jagd oder Kampf. Neue Tätigkeiten brauchen auf beiden Seiten
+  denselben Namen und einen sinnvollen Fallback.
 - **Gliedmaßen dürfen nicht im Rumpf stecken.** Beim Schlag greifen die Arme nach vorn-unten,
   nicht seitlich herunter — sonst wandert der Ellbogen in die Brust. Nachprüfbar: Abstand des
   Ellbogens von der Körperachse gegen den Rumpfradius (Taille 14,5 cm, Brust 17,5 cm).
@@ -466,6 +485,9 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
   ```bash
   blender --background --python tools/blender/preview.py -- unit_settler out.png three-quarter "Gather_Chop:13"
   ```
+
+  Bei einer Pose mutet das Werkzeug alle übrigen NLA-Tracks. Ohne diese Isolation würden sämtliche
+  Clips gleichzeitig ausgewertet, Posen vermischt und alle Ausrüstungsgegenstände eingeblendet.
 
 - **Prüfskripte selbst hinterfragen.** Zwei meiner Kontrollen waren wertlos: eine las nur die
   Wurzel-Transformation (immer Identität), eine andere maß nach dem Rundlauf die falsche Achse.
@@ -501,12 +523,12 @@ Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footpri
 | 6 | **Bogenschütze** | 2 | Starker Fernkampf | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
 
 Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
-— Siedler zusätzlich: `Gather_Chop`, `Gather_Mine`, `Build`, `Carry_Walk`
+— Siedler zusätzlich: `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Carry_Walk`
 
 - [x] Gemeinsames Skelett und Clip-Vokabular in `lib_rig` / `lib_anim` — eine einmal angelegte
   Bewegung läuft auf jeder humanoiden Einheit
-- [x] Siedler hat `Idle`, `Walk`, `Gather_Chop`, `Death`
-  - [ ] `Run`, `Attack`, `Gather_Mine`, `Build`, `Carry_Walk` fehlen noch
+- [x] Siedler hat `Idle`, `Walk`, `Run`, `Carry_Walk`, `Gather_Food`, `Gather_Chop`,
+  `Gather_Mine`, `Build`, `Attack` und `Death`
 - [x] Zufälliger Anim-Offset pro Einheit, damit Gruppen nicht synchron zappeln (`ModelAnimator`)
 - [ ] Animation-Events für Trefferzeitpunkt (`OnHitFrame`) und Werkzeugschlag (`OnGatherHit`)
 - [ ] Blend zwischen Idle / Walk über `AnimationTree` + `BlendSpace1D`

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 import os
+import time
 
 import bpy
 
@@ -66,31 +67,46 @@ def export_glb(objects, category: str, name: str) -> str:
     target_dir = os.path.join(MODEL_ROOT, category)
     os.makedirs(target_dir, exist_ok=True)
     path = os.path.join(target_dir, f"{name}.glb")
+    temporary = os.path.join(target_dir, f".{name}.exporting.glb")
 
     select(objects)
     restore = _face_godot_forward(objects)
 
-    bpy.ops.export_scene.gltf(
-        filepath=path,
-        export_format="GLB",
-        use_selection=True,
-        # Blender is Z-up, Godot is Y-up; the exporter converts. It maps
-        # gltf_z = -blender_y, which is why the facing has to be corrected
-        # separately — see _face_godot_forward.
-        export_yup=True,
-        # Bake modifiers into the exported mesh — Godot should not have to know
-        # about bevels and weighted normals.
-        export_apply=True,
-        export_animations=True,
-        export_skins=True,
-        export_normals=True,
-        export_tangents=False,
-        export_materials="EXPORT",
-        export_cameras=False,
-        export_lights=False,
-    )
+    try:
+        # Write beside the live asset first. Godot may briefly hold the existing
+        # GLB open while reimporting; exporting straight into it can fail halfway
+        # through and leave no usable model at all.
+        bpy.ops.export_scene.gltf(
+            filepath=temporary,
+            export_format="GLB",
+            use_selection=True,
+            # Blender is Z-up, Godot is Y-up; the exporter converts. It maps
+            # gltf_z = -blender_y, which is why the facing has to be corrected
+            # separately — see _face_godot_forward.
+            export_yup=True,
+            # Bake modifiers into the exported mesh — Godot should not have to know
+            # about bevels and weighted normals.
+            export_apply=True,
+            export_animations=True,
+            export_skins=True,
+            export_normals=True,
+            export_tangents=False,
+            export_materials="EXPORT",
+            export_cameras=False,
+            export_lights=False,
+        )
 
-    restore()
+        for attempt in range(20):
+            try:
+                os.replace(temporary, path)
+                break
+            except OSError:
+                if attempt == 19:
+                    raise
+                time.sleep(0.25)
+    finally:
+        restore()
+
     return path
 
 

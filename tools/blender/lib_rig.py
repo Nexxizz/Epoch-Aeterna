@@ -88,6 +88,19 @@ def humanoid(name: str, height: float = 1.8):
             at(PROPORTIONS["foot"], hip),
             thigh)
 
+    # Equipment slots are regular bones so a single exported model can carry
+    # several task-specific props and reveal only the one used by an animation.
+    # They inherit the hand movement, while their own scale controls visibility.
+    right_forearm = armature_data.edit_bones["arm_lower.R"]
+    bone("tool_axe", at(0.57, -SHOULDER_WIDTH, -0.01),
+         at(0.38, -SHOULDER_WIDTH, -0.01), right_forearm)
+    bone("tool_pick", at(0.57, -SHOULDER_WIDTH, -0.01),
+         at(0.38, -SHOULDER_WIDTH, -0.01), right_forearm)
+    bone("tool_spear", at(0.70, -SHOULDER_WIDTH, -0.01),
+         at(0.20, -SHOULDER_WIDTH, -0.01), right_forearm)
+    bone("tool_basket", at(0.70, 0.0, 0.22),
+         at(0.48, 0.0, 0.22), chest)
+
     bpy.ops.object.mode_set(mode="OBJECT")
     return armature
 

@@ -28,7 +28,8 @@ import bpy
 
 
 def make_action(armature, name: str, length: int, rotations: dict,
-                locations: dict | None = None, loop: bool = True):
+                locations: dict | None = None, scales: dict | None = None,
+                loop: bool = True):
     """Create one action from tables of bone poses.
 
     ``rotations`` maps a bone name to ``[(frame, (x, y, z) in degrees), ...]``.
@@ -48,6 +49,8 @@ def make_action(armature, name: str, length: int, rotations: dict,
     _insert(armature, rotations, "rotation_euler", length, loop, degrees=True)
     if locations:
         _insert(armature, locations, "location", length, loop, degrees=False)
+    if scales:
+        _insert(armature, scales, "scale", length, loop, degrees=False)
 
     _smooth(action)
     _push_to_nla(armature, action, name)
@@ -71,8 +74,10 @@ def _insert(armature, table: dict, data_path: str, length: int, loop: bool,
         for frame, value in entries:
             if degrees:
                 bone.rotation_euler = [math.radians(v) for v in value]
-            else:
+            elif data_path == "location":
                 bone.location = value
+            else:
+                bone.scale = value
 
             bone.keyframe_insert(data_path=data_path, frame=frame)
 
@@ -134,11 +139,24 @@ def rest_pose(armature) -> None:
         bone.rotation_mode = "XYZ"
         bone.rotation_euler = (0.0, 0.0, 0.0)
         bone.location = (0.0, 0.0, 0.0)
+        bone.scale = (1.0, 1.0, 1.0)
 
 
 # --- Standard clips ------------------------------------------------------
 # The shared vocabulary every human unit is expected to provide. The game looks
 # these names up by string, so they are part of the contract with the code.
+
+EQUIPMENT_BONES = ("tool_axe", "tool_pick", "tool_spear", "tool_basket")
+
+
+def equipment(active: str | None = None) -> dict:
+    """Scale equipment slots so only the prop needed by a clip is visible."""
+    hidden = (0.001, 0.001, 0.001)
+    visible = (1.0, 1.0, 1.0)
+    return {
+        bone: [(0, visible if bone == active else hidden)]
+        for bone in EQUIPMENT_BONES
+    }
 
 def idle(armature, length: int = 96):
     """Breathing and a slow shift of weight.
@@ -159,7 +177,7 @@ def idle(armature, length: int = 96):
     }, locations={
         # The chest rising lifts the whole body a few millimetres.
         "root": [(0, (0, 0, 0)), (26, (0, 0.012, 0)), (52, (0, 0, 0))],
-    })
+    }, scales=equipment())
 
 
 def walk(armature, length: int = 24):
@@ -188,7 +206,66 @@ def walk(armature, length: int = 24):
         # Highest over the standing leg, lowest on each foot contact — twice per
         # cycle, which is what actually sells the weight.
         "root": [(0, (0, 0, 0)), (6, (0, 0.045, 0)), (12, (0, 0, 0)), (18, (0, 0.045, 0))],
-    })
+    }, scales=equipment())
+
+
+def run(armature, length: int = 18):
+    """Faster travel cycle with a forward lean and a brief airborne phase."""
+    return make_action(armature, "Run", length, {
+        "leg_upper.L": [(0, (38, 0, 0)), (4, (5, 0, 0)), (9, (-30, 0, 0)), (14, (8, 0, 0))],
+        "leg_upper.R": [(0, (-30, 0, 0)), (4, (8, 0, 0)), (9, (38, 0, 0)), (14, (5, 0, 0))],
+        "leg_lower.L": [(0, (-8, 0, 0)), (4, (-18, 0, 0)), (9, (-18, 0, 0)), (14, (-62, 0, 0))],
+        "leg_lower.R": [(0, (-18, 0, 0)), (4, (-62, 0, 0)), (9, (-8, 0, 0)), (14, (-18, 0, 0))],
+        "arm_upper.L": [(0, (-36, 0, 0)), (9, (34, 0, 0))],
+        "arm_upper.R": [(0, (34, 0, 0)), (9, (-36, 0, 0))],
+        "arm_lower.L": [(0, (-28, 0, 0)), (9, (-52, 0, 0))],
+        "arm_lower.R": [(0, (-52, 0, 0)), (9, (-28, 0, 0))],
+        "hips": [(0, (7, -7, 0)), (9, (7, 7, 0))],
+        "chest": [(0, (10, 6, 0)), (9, (10, -6, 0))],
+        "head": [(0, (-6, 0, 0))],
+    }, locations={
+        "root": [(0, (0, 0.015, 0)), (4, (0, 0.065, 0)), (9, (0, 0.015, 0)), (14, (0, 0.065, 0))],
+    }, scales=equipment())
+
+
+def carry_walk(armature, length: int = 28):
+    """Careful walk while holding the straps of a loaded back basket."""
+    return make_action(armature, "Carry_Walk", length, {
+        "leg_upper.L": [(0, (21, 0, 0)), (7, (2, 0, 0)), (14, (-17, 0, 0)), (21, (5, 0, 0))],
+        "leg_upper.R": [(0, (-17, 0, 0)), (7, (5, 0, 0)), (14, (21, 0, 0)), (21, (2, 0, 0))],
+        "leg_lower.L": [(0, (-7, 0, 0)), (7, (-13, 0, 0)), (14, (-9, 0, 0)), (21, (-38, 0, 0))],
+        "leg_lower.R": [(0, (-9, 0, 0)), (7, (-38, 0, 0)), (14, (-7, 0, 0)), (21, (-13, 0, 0))],
+        "arm_upper.L": [(0, (-30, -8, -3)), (14, (-34, -6, -2))],
+        "arm_upper.R": [(0, (-30, 8, 3)), (14, (-34, 6, 2))],
+        "arm_lower.L": [(0, (-82, -8, 0)), (14, (-76, -6, 0))],
+        "arm_lower.R": [(0, (-82, 8, 0)), (14, (-76, 6, 0))],
+        "chest": [(0, (5, 2, 0)), (14, (5, -2, 0))],
+        "head": [(0, (-3, 0, 0))],
+    }, locations={
+        "root": [(0, (0, 0, 0)), (7, (0, 0.025, 0)), (14, (0, 0, 0)), (21, (0, 0.025, 0))],
+    }, scales=equipment("tool_basket"))
+
+
+def gather_food(armature, length: int = 52):
+    """Crouch, pick berries or butchered meat, and place it in a basket."""
+    return make_action(armature, "Gather_Food", length, {
+        "hips": [(0, (8, 0, 0)), (12, (28, 0, 0)), (26, (31, 5, 0)), (38, (24, -4, 0))],
+        "spine": [(0, (6, 0, 0)), (12, (18, 0, 0)), (26, (24, 5, 0)), (38, (16, -4, 0))],
+        "chest": [(0, (8, 0, 0)), (12, (22, 0, 0)), (26, (28, 8, 0)), (38, (18, -6, 0))],
+        "head": [(0, (-10, 0, 0)), (12, (-24, 0, 0)), (26, (-18, -7, 0)), (38, (-20, 5, 0))],
+        "leg_upper.L": [(0, (8, 0, 0)), (12, (48, 0, -6)), (26, (54, 0, -8)), (38, (44, 0, -4))],
+        "leg_upper.R": [(0, (8, 0, 0)), (12, (42, 0, 8)), (26, (48, 0, 10)), (38, (39, 0, 6))],
+        "leg_lower.L": [(0, (-10, 0, 0)), (12, (-66, 0, 0)), (26, (-72, 0, 0)), (38, (-58, 0, 0))],
+        "leg_lower.R": [(0, (-10, 0, 0)), (12, (-61, 0, 0)), (26, (-68, 0, 0)), (38, (-55, 0, 0))],
+        "arm_upper.R": [(0, (-24, 0, 0)), (12, (-45, 0, 0)), (24, (-78, -18, 0)),
+                        (33, (-48, 16, 0)), (43, (-72, -10, 0))],
+        "arm_lower.R": [(0, (-28, 0, 0)), (12, (-42, 0, 0)), (24, (-16, 0, 0)),
+                        (33, (-72, 10, 0)), (43, (-25, 0, 0))],
+        "arm_upper.L": [(0, (-52, -12, 0)), (26, (-57, -12, 0))],
+        "arm_lower.L": [(0, (-58, -8, 0)), (26, (-62, -8, 0))],
+    }, locations={
+        "root": [(0, (0, 0, 0)), (12, (0, -0.18, 0)), (26, (0, -0.22, 0)), (38, (0, -0.16, 0))],
+    }, scales=equipment("tool_basket"))
 
 
 def work_chop(armature, length: int = 34):
@@ -243,7 +320,78 @@ def work_chop(armature, length: int = 34):
         # Rises with the wind-up, drops into the strike, settles on recovery.
         "root": [(0, (0, 0.015, 0)), (9, (0, 0.04, 0)), (13, (0, -0.055, 0)),
                  (16, (0, -0.035, 0)), (24, (0, 0.015, 0))],
-    })
+    }, scales=equipment("tool_axe"))
+
+
+def work_mine(armature, length: int = 38):
+    """Two-handed stone-pick swing for stone, ore and future iron deposits."""
+    return make_action(armature, "Gather_Mine", length, {
+        "arm_upper.R": [(0, (-72, -5, 0)), (11, (-132, -4, 0)), (16, (-46, -3, 0)),
+                        (22, (-58, -4, 0)), (30, (-78, -5, 0))],
+        "arm_lower.R": [(0, (-45, 0, 0)), (11, (-66, 0, 0)), (16, (-18, 0, 0)),
+                        (22, (-28, 0, 0)), (30, (-42, 0, 0))],
+        "arm_upper.L": [(0, (-76, 28, 7)), (11, (-126, 30, 7)), (16, (-52, 24, 4)),
+                        (22, (-61, 24, 5)), (30, (-80, 27, 7))],
+        "arm_lower.L": [(0, (-48, 9, 5)), (11, (-70, 11, 6)), (16, (-23, 8, 3)),
+                        (22, (-31, 8, 4)), (30, (-46, 9, 5))],
+        "hips": [(0, (4, 5, 0)), (11, (-2, 8, 0)), (16, (12, -5, 0)), (30, (4, 4, 0))],
+        "spine": [(0, (5, 5, 0)), (11, (-8, 9, 0)), (16, (19, -7, 0)), (30, (4, 4, 0))],
+        "chest": [(0, (8, 8, 0)), (11, (-13, 13, 0)), (16, (27, -10, 0)), (30, (7, 6, 0))],
+        "head": [(0, (-7, -8, 0)), (11, (6, -16, 0)), (16, (-20, 12, 0)), (30, (-6, -7, 0))],
+        "leg_upper.L": [(0, (9, 0, 0)), (16, (19, 0, 0)), (30, (9, 0, 0))],
+        "leg_upper.R": [(0, (11, 0, 0)), (16, (17, 0, 0)), (30, (11, 0, 0))],
+        "leg_lower.L": [(0, (-12, 0, 0)), (16, (-27, 0, 0)), (30, (-12, 0, 0))],
+        "leg_lower.R": [(0, (-14, 0, 0)), (16, (-24, 0, 0)), (30, (-14, 0, 0))],
+    }, locations={
+        "root": [(0, (0, 0, 0)), (11, (0, 0.045, 0)), (16, (0, -0.075, 0)),
+                 (22, (0, -0.035, 0)), (30, (0, 0, 0))],
+    }, scales=equipment("tool_pick"))
+
+
+def attack(armature, length: int = 30):
+    """Short spear thrust suitable for hunting animals or close combat."""
+    return make_action(armature, "Attack", length, {
+        "hips": [(0, (0, -12, 0)), (9, (0, 15, 0)), (14, (0, -9, 0)), (23, (0, -12, 0))],
+        "spine": [(0, (2, -10, 0)), (9, (-3, 12, 0)), (14, (9, -8, 0)), (23, (2, -10, 0))],
+        "chest": [(0, (4, -13, 0)), (9, (-5, 16, 0)), (14, (14, -12, 0)), (23, (4, -13, 0))],
+        "head": [(0, (-4, 20, 0)), (9, (1, -22, 0)), (14, (-10, 17, 0)), (23, (-4, 20, 0))],
+        "arm_upper.R": [(0, (-82, -8, 6)), (9, (-58, 12, 5)), (14, (-103, -12, 2)),
+                        (19, (-92, -8, 5)), (23, (-82, -8, 6))],
+        "arm_lower.R": [(0, (-64, 0, 0)), (9, (-92, 0, 0)), (14, (-18, 0, 0)),
+                        (19, (-38, 0, 0)), (23, (-64, 0, 0))],
+        "arm_upper.L": [(0, (-54, 24, 6)), (9, (-68, 18, 5)), (14, (-74, 25, 4)),
+                        (23, (-54, 24, 6))],
+        "arm_lower.L": [(0, (-72, 8, 0)), (9, (-58, 6, 0)), (14, (-40, 8, 0)),
+                        (23, (-72, 8, 0))],
+        "leg_upper.L": [(0, (23, 0, 0)), (14, (29, 0, 0)), (23, (23, 0, 0))],
+        "leg_upper.R": [(0, (-15, 0, 0)), (14, (-21, 0, 0)), (23, (-15, 0, 0))],
+        "leg_lower.L": [(0, (-25, 0, 0)), (14, (-32, 0, 0)), (23, (-25, 0, 0))],
+        "leg_lower.R": [(0, (-16, 0, 0)), (14, (-21, 0, 0)), (23, (-16, 0, 0))],
+    }, locations={
+        "root": [(0, (0, 0, 0)), (9, (0, -0.015, 0)), (14, (0, -0.04, -0.09)),
+                 (23, (0, 0, 0))],
+    }, scales=equipment("tool_spear"))
+
+
+def build(armature, length: int = 36):
+    """Controlled kneeling hammer stroke using the flat of the stone axe."""
+    return make_action(armature, "Build", length, {
+        "hips": [(0, (18, 0, 0)), (12, (25, 0, 0)), (18, (31, 0, 0)), (28, (20, 0, 0))],
+        "spine": [(0, (11, 0, 0)), (12, (17, 0, 0)), (18, (24, 0, 0)), (28, (13, 0, 0))],
+        "chest": [(0, (14, 5, 0)), (12, (7, 8, 0)), (18, (31, -5, 0)), (28, (16, 4, 0))],
+        "head": [(0, (-12, -4, 0)), (12, (-5, -7, 0)), (18, (-25, 5, 0)), (28, (-13, -3, 0))],
+        "arm_upper.R": [(0, (-72, 0, 0)), (12, (-108, 0, 0)), (18, (-48, 0, 0)), (28, (-70, 0, 0))],
+        "arm_lower.R": [(0, (-42, 0, 0)), (12, (-58, 0, 0)), (18, (-14, 0, 0)), (28, (-38, 0, 0))],
+        "arm_upper.L": [(0, (-48, 18, 0)), (18, (-62, 12, 0)), (28, (-48, 18, 0))],
+        "arm_lower.L": [(0, (-52, 5, 0)), (18, (-37, 4, 0)), (28, (-52, 5, 0))],
+        "leg_upper.L": [(0, (35, 0, -8)), (18, (42, 0, -10)), (28, (35, 0, -8))],
+        "leg_upper.R": [(0, (28, 0, 8)), (18, (36, 0, 10)), (28, (28, 0, 8))],
+        "leg_lower.L": [(0, (-52, 0, 0)), (18, (-62, 0, 0)), (28, (-52, 0, 0))],
+        "leg_lower.R": [(0, (-45, 0, 0)), (18, (-57, 0, 0)), (28, (-45, 0, 0))],
+    }, locations={
+        "root": [(0, (0, -0.12, 0)), (12, (0, -0.10, 0)), (18, (0, -0.20, 0)),
+                 (28, (0, -0.12, 0))],
+    }, scales=equipment("tool_axe"))
 
 
 def death(armature, length: int = 44):
@@ -267,4 +415,4 @@ def death(armature, length: int = 44):
         # The body drops as the legs give way, with a small settle at the end.
         "root": [(0, (0, 0, 0)), (12, (0, -0.12, 0)), (28, (0, -0.78, 0)),
                  (34, (0, -0.72, 0)), (44, (0, -0.76, 0))],
-    }, loop=False)
+    }, scales=equipment(), loop=False)

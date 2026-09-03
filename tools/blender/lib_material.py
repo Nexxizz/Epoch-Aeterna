@@ -38,7 +38,7 @@ def pbr(name: str, base_color, roughness: float = 0.85, metallic: float = 0.0):
     return material
 
 
-def team_color(base_color=(0.55, 0.55, 0.58)):
+def team_color(base_color=(0.10, 0.38, 0.78)):
     """The material the game recolours per player.
 
     The base colour here is only what shows up in Blender and in a raw glTF
@@ -94,7 +94,27 @@ def cloth():
 
 def hide():
     """Cured animal hide — the Stone Age's roofing and cladding material."""
-    return pbr("hide", (0.46, 0.34, 0.23), roughness=0.9)
+    return pbr("hide", (0.34, 0.19, 0.09), roughness=0.92)
+
+
+def fur():
+    """Dark fur used for warm trim and boots."""
+    return pbr("fur", (0.20, 0.105, 0.045), roughness=0.98)
+
+
+def ochre():
+    """Iron-oxide dyed leather: saturated, natural and distinctly prehistoric."""
+    return pbr("ochre", (0.72, 0.25, 0.055), roughness=0.92)
+
+
+def bone():
+    """Warm ivory for beads, teeth, tool lashings and eye whites."""
+    return pbr("bone", (0.82, 0.72, 0.48), roughness=0.82)
+
+
+def fibre():
+    """Golden dry grass and cordage."""
+    return pbr("fibre", (0.57, 0.36, 0.11), roughness=0.97)
 
 
 def hair():
@@ -102,5 +122,10 @@ def hair():
     return pbr("hair", (0.16, 0.11, 0.07), roughness=0.95)
 
 
+def food():
+    """Warm berry-and-meat accent visible inside a carried gathering basket."""
+    return pbr("food", (0.48, 0.09, 0.055), roughness=0.9)
+
+
 def skin():
-    return pbr("skin", (0.68, 0.51, 0.39), roughness=0.75)
+    return pbr("skin", (0.72, 0.43, 0.25), roughness=0.78)
