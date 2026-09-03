@@ -21,6 +21,12 @@ public sealed class Projectile
     public required DamageType DamageType { get; init; }
     public required float Speed { get; init; }
 
+    /// <summary>Presentation-only launch height above terrain.</summary>
+    public float OriginHeight { get; init; } = 1.1f;
+
+    /// <summary>Presentation-only impact height above terrain.</summary>
+    public float TargetHeight { get; init; } = 1.1f;
+
     public Vector2 Position { get; set; }
 
     /// <summary>Last known target position — the projectile flies on even if the target dies.</summary>

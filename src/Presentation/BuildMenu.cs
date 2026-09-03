@@ -1,5 +1,6 @@
 using Godot;
 using EpochAeterna.Core.Data;
+using EpochAeterna.Core.Entities;
 using EpochAeterna.Core.Simulation;
 
 namespace EpochAeterna.Presentation;
@@ -13,13 +14,21 @@ public sealed partial class BuildMenu : CanvasLayer
     private readonly TextureButton _houseButton = new();
     private readonly TextureButton _storehouseButton = new();
     private readonly TextureButton _farmButton = new();
+    private readonly TextureButton _barracksButton = new();
+    private readonly TextureButton _rangeButton = new();
+    private readonly TextureButton _towerButton = new();
     private readonly Label _hint = new();
 
+    private SimulationWorld? _world;
     private SelectionController? _selection;
     private BuildPlacementController? _placement;
+    private int _localPlayerId;
     private BuildingDefinition? _house;
     private BuildingDefinition? _storehouse;
     private BuildingDefinition? _farm;
+    private BuildingDefinition? _barracks;
+    private BuildingDefinition? _range;
+    private BuildingDefinition? _tower;
 
     public override void _Ready()
     {
@@ -30,7 +39,7 @@ public sealed partial class BuildMenu : CanvasLayer
         _panel.AnchorBottom = 1f;
         _panel.OffsetLeft = 20f;
         _panel.OffsetTop = -218f;
-        _panel.OffsetRight = 578f;
+        _panel.OffsetRight = 1084f;
         _panel.OffsetBottom = -20f;
         _panel.MouseFilter = Control.MouseFilterEnum.Stop;
 
@@ -64,6 +73,14 @@ public sealed partial class BuildMenu : CanvasLayer
             BeginStorehousePlacement);
         AddBuildingAction(actions, _farmButton, "BuildFarm", "Farm", "60 Holz",
             "Farm bauen (60 Holz) — erneuerbare Nahrungsquelle", BeginFarmPlacement);
+        AddBuildingAction(actions, _barracksButton, "BuildBarracks", "Kaserne", "150 Holz",
+            "Kaserne bauen (150 Holz) — bildet Nahkämpfer aus", BeginBarracksPlacement);
+        AddBuildingAction(actions, _rangeButton, "BuildRange", "Schießstand", "150 Holz + 50 Stein",
+            "Schießstand bauen — erfordert Kupferzeit und eine fertige Kaserne",
+            BeginRangePlacement);
+        AddBuildingAction(actions, _towerButton, "BuildTower", "Wachturm", "50 Holz + 120 Stein",
+            "Wachturm bauen — erfordert Kupferzeit, große Sichtweite und automatischer Angriff",
+            BeginTowerPlacement);
 
         _hint.Text = "Bild anklicken";
         _hint.HorizontalAlignment = HorizontalAlignment.Center;
@@ -74,18 +91,26 @@ public sealed partial class BuildMenu : CanvasLayer
         _panel.Visible = false;
     }
 
-    public void Attach(DefinitionDatabase definitions, SelectionController selection,
-        BuildPlacementController placement)
+    public void Attach(SimulationWorld world, SelectionController selection,
+        BuildPlacementController placement, int localPlayerId)
     {
+        _world = world;
         _selection = selection;
         _placement = placement;
-        _house = definitions.GetBuilding("bld_house");
-        _storehouse = definitions.GetBuilding("bld_storehouse");
-        _farm = definitions.GetBuilding("bld_farm");
+        _localPlayerId = localPlayerId;
+        _house = world.Definitions.GetBuilding("bld_house");
+        _storehouse = world.Definitions.GetBuilding("bld_storehouse");
+        _farm = world.Definitions.GetBuilding("bld_farm");
+        _barracks = world.Definitions.GetBuilding("bld_barracks");
+        _range = world.Definitions.GetBuilding("bld_range");
+        _tower = world.Definitions.GetBuilding("bld_tower");
 
         _houseButton.TextureNormal = _house?.Icon;
         _storehouseButton.TextureNormal = _storehouse?.Icon;
         _farmButton.TextureNormal = _farm?.Icon;
+        _barracksButton.TextureNormal = _barracks?.Icon;
+        _rangeButton.TextureNormal = _range?.Icon;
+        _towerButton.TextureNormal = _tower?.Icon;
         selection.SelectionChanged += Refresh;
         placement.PlacementChanged += OnPlacementChanged;
         Refresh();
@@ -112,6 +137,33 @@ public sealed partial class BuildMenu : CanvasLayer
         if (_selection?.SelectedBuilders().Length > 0) _placement?.Begin("bld_farm");
     }
 
+    private void BeginBarracksPlacement()
+    {
+        if (_selection?.SelectedBuilders().Length > 0) _placement?.Begin("bld_barracks");
+    }
+
+    private void BeginRangePlacement()
+    {
+        BeginLockedPlacement(_range, "bld_range");
+    }
+
+    private void BeginTowerPlacement()
+    {
+        BeginLockedPlacement(_tower, "bld_tower");
+    }
+
+    private void BeginLockedPlacement(BuildingDefinition? definition, string definitionId)
+    {
+        if (_selection?.SelectedBuilders().Length <= 0 || definition is null) return;
+        string? reason = BuildLockReason(definition);
+        if (reason is not null)
+        {
+            _hint.Text = $"Gesperrt: {reason}";
+            return;
+        }
+        _placement?.Begin(definitionId);
+    }
+
     private void OnPlacementChanged(BuildingDefinition? definition)
     {
         _hint.Text = definition is not null
@@ -123,6 +175,50 @@ public sealed partial class BuildMenu : CanvasLayer
     {
         _panel.Visible = _selection?.SelectedBuilding() is null &&
                          _selection?.SelectedBuilders().Length > 0;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!_panel.Visible || _world is null || _range is null || _tower is null) return;
+        Player? player = _world.GetPlayer(_localPlayerId);
+        if (player is null) return;
+
+        UpdateLockedButton(_rangeButton, _range,
+            "Schießstand bauen — bildet Schleuderer und Bogenschützen aus");
+        UpdateLockedButton(_towerButton, _tower,
+            "Wachturm bauen — große Sichtweite und automatischer Fernkampfangriff");
+    }
+
+    private void UpdateLockedButton(TextureButton button, BuildingDefinition definition,
+        string availableTooltip)
+    {
+        string? reason = BuildLockReason(definition);
+        // Keep the card clickable: a click explains the lock instead of doing nothing.
+        button.Disabled = false;
+        button.Modulate = reason is null ? Colors.White : new Color(0.52f, 0.52f, 0.52f, 1f);
+        button.TooltipText = reason is null ? availableTooltip : $"Gesperrt — {reason}";
+    }
+
+    private string? BuildLockReason(BuildingDefinition definition)
+    {
+        Player? player = _world?.GetPlayer(_localPlayerId);
+        if (player is null) return "Spieler nicht verfügbar";
+        if (player.AgeIndex < definition.RequiredAgeIndex) return "erfordert die Kupferzeit";
+        if (!HasCompletedBuilding(definition.RequiredBuildingId)) return "erfordert eine fertige Kaserne";
+        if (!player.CanAfford(definition.Cost)) return "nicht genügend Ressourcen";
+        return null;
+    }
+
+    private bool HasCompletedBuilding(string definitionId)
+    {
+        if (_world is null || string.IsNullOrEmpty(definitionId)) return true;
+        foreach (Building building in _world.Entities.Buildings)
+        {
+            if (building.OwnerId == _localPlayerId &&
+                building.DefinitionId == definitionId && !building.IsUnderConstruction)
+                return true;
+        }
+        return false;
     }
 
     private static void AddBuildingAction(HBoxContainer parent, TextureButton button,
@@ -141,7 +237,7 @@ public sealed partial class BuildMenu : CanvasLayer
 
         card.AddChild(new Label
         {
-            Text = $"{label}  •  {cost}",
+            Text = $"{label}\n{cost}",
             HorizontalAlignment = HorizontalAlignment.Center,
         });
     }

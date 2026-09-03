@@ -321,8 +321,8 @@ EpochAeterna/
   |---|---|---|
   | Ressourcenvorkommen, Requisiten | 150–800 | Baum 268 |
   | Einheiten | kein starres Limit — visuelle Lesbarkeit hat Vorrang | Siedler 3.830 |
-  | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | Richtwert 1.500–4.000; Lesbarkeit hat Vorrang | Haus 9.032; Lagerhaus 7.636 |
-  | Große Gebäude (Rathaus, Kaserne, Schießstand) | 4.000–10.000 | Rathaus 6.734 |
+  | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | Richtwert 1.500–4.000; Lesbarkeit hat Vorrang | Haus 9.032; Lagerhaus 7.636; Wachturm 10.644 |
+  | Große Gebäude (Rathaus, Kaserne, Schießstand) | Richtwert 4.000–10.000; Lesbarkeit hat Vorrang | Rathaus 6.734; Kaserne 6.586; Schießstand 13.428 |
 
   Die Vorkommen sind der eigentliche Posten: Auf einer 128×128-Karte stehen rund 280 davon,
   also etwa 75.000 Dreiecke allein für Bäume und Felsen — mehr als alle Gebäude und Einheiten
@@ -354,7 +354,7 @@ EpochAeterna/
 
 **Pipeline-Validierung** — Punkt 4 der Umsetzungsreihenfolge ist erledigt:
 
-Sechs Assets sind komplett durch die Kette gelaufen; Haus und Lagerhaus besitzen Baustufen,
+Neun Assets sind komplett durch die Kette gelaufen; Haus, Lagerhaus, Kaserne, Schießstand und Wachturm besitzen Baustufen,
 die Farm teilt dieselben drei Modelle zwischen Aufbau und sichtbarem Nachwachsen.
 
 | Asset | Dreiecke | Besonderheit |
@@ -365,6 +365,9 @@ die Farm teilt dieselben drei Modelle zwischen Aufbau und sichtbarem Nachwachsen
 | `bld_house` | 9.032 | drei konsistente Baustufen (824 / 7.156 / 8.572), fertiges Modell und Trümmer-Mesh (1.476) |
 | `bld_storehouse` | 7.636 | Laderampe und sichtbare Vorräte, Baustufen (880 / 4.040 / 5.404), Trümmer-Mesh (2.268) |
 | `bld_farm` | 8.448 | 3×3-Kachel-Feld, Wachstumsstufen (1.568 / 2.820 / 5.088), Erntekörbe und Teammarker |
+| `bld_barracks` | 6.586 | befestigter Trainingshof, Baustufen (1.108 / 4.308 / 5.628), Waffenständer und Trümmer (2.484) |
+| `bld_range` | 13.428 | offener Schießhof, Baustufen (2.116 / 4.732 / 6.876), drei Zielscheiben, Bogen-/Schleuderausrüstung und Trümmer (2.644) |
+| `bld_tower` | 10.644 | 6,1 m hoher Wehrturm, Baustufen (1.756 / 6.076 / 8.504), Leiter, Schützenplattform und Trümmer (3.296) |
 
 ```bash
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py
@@ -372,11 +375,11 @@ die Farm teilt dieselben drei Modelle zwischen Aufbau und sichtbarem Nachwachsen
 
 | Prüfung | Ergebnis |
 |---|---|
-| Blender-Build | 6/6 Assets samt Gebäudevarianten, keine Exportfehler |
+| Blender-Build | 9/9 Assets samt Gebäudevarianten, keine Exportfehler |
 | Godot-Import | fehlerfrei |
 | Animationsclips | `Idle`, `Walk`, `Run`, `Carry_Walk`, `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Attack`, `Death` + Skeleton3D bestätigt |
 | Team-Color | Banner und Siedler nehmen die Spielerfarbe an |
-| Selbsttest | 140/140, Exit-Code 0 |
+| Selbsttest | 154/154, Exit-Code 0 |
 
 > Genau die Fehler, die der Plan an dieser Stelle vorhergesagt hat, sind aufgetreten —
 > und zwar an drei Assets statt an sechzehn:
@@ -515,16 +518,17 @@ die Farm teilt dieselben drei Modelle zwischen Aufbau und sichtbarem Nachwachsen
 | 2 | **Haus** | 1 | +10 Bevölkerungslimit | [x] Modell [x] Baustufen [x] Ingame |
 | 3 | **Lagerhaus** | 1 | Abgabestelle für Holz / Stein / Gold | [x] Modell [x] Baustufen [x] Ingame |
 | 4 | **Farm** | 1 | Erneuerbare Nahrungsquelle | [x] Modell [x] Wachstumsstufen [x] Ingame |
-| 5 | **Kaserne** | 1 | Nahkampfeinheiten | [ ] Modell [ ] Baustufen [ ] Ingame |
-| 6 | **Schießstand** | 2 | Fernkampfeinheiten | [ ] Modell [ ] Baustufen [ ] Ingame |
-| 7 | **Wachturm** | 2 | Verteidigung, schießt automatisch, große Sichtweite | [ ] Modell [ ] Baustufen [ ] Ingame |
+| 5 | **Kaserne** | 1 | Nahkampfeinheiten | [x] Modell [x] Baustufen [x] Ingame |
+| 6 | **Schießstand** | 2 | Fernkampfeinheiten | [x] Modell [x] Baustufen [x] Ingame |
+| 7 | **Wachturm** | 2 | Verteidigung, schießt automatisch, große Sichtweite | [x] Modell [x] Baustufen [x] Ingame |
 
 Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footprint.
 
 - [x] Beim ausgewählten Siedler zeigt ein kontextuelles Bau-Menü das fertige Haus als anklickbares
   Bild. Der Klick startet die eingefärbte Modellvorschau; ein gültiger Linksklick platziert die
   Baustelle und weist die ausgewählten Siedler direkt als Bauarbeiter zu.
-- [x] Haus, Lagerhaus und Farm stehen mit Bild, Kosten und Beschreibung im Siedler-Baumenü.
+- [x] Alle sechs baubaren Gebäude — Haus, Lagerhaus, Farm, Kaserne, Schießstand und Wachturm —
+  stehen mit Bild, Kosten und Beschreibung im Siedler-Baumenü; das Rathaus ist das Startgebäude.
 
 ### 5.2 Einheiten (6)
 
@@ -573,7 +577,12 @@ Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 - [ ] Selektionspanel unten: Portrait, Name, HP, Werte; bei Mehrfachauswahl Icon-Gitter
 - [ ] Aktionsleiste: kontextabhängige Buttons (Bauen, Ausbilden, Aufsteigen, Stopp, Abriss) mit Tastenkürzeln
   - [x] Rathaus: Siedlerbild, Kosten, Warteschlange und Ausbildungsfortschritt
-- [ ] Bau-Menü mit Kosten-Tooltip; gesperrte Einträge ausgegraut samt Begründung ("Erfordert Kupferzeit")
+  - [x] Rathaus: sichtbarer Kupferzeit-Aufstieg mit Kosten, Bauvoraussetzung und Forschungsfortschritt
+  - [x] Kaserne: datengetriebene Ausbildung von Speer- und Schwertkämpfern samt Zeitaltersperre
+  - [x] Schießstand: Schleuderer und Bogenschützen samt Kosten, Warteschlange und Zeitaltersperre
+  - [x] Wachturm: Bauaktion mit Kupferzeitsperre und klaren Verteidigungswerten
+- [x] Bau-Menü mit Kosten-Tooltip; gesperrte Einträge sind abgedunkelt, bleiben für eine direkte
+  Begründung anklickbar und erklären Kupferzeit, Kasernenvoraussetzung oder fehlende Ressourcen
 - [ ] Minimap: Terrain, Fog of War, eigene und feindliche Einheiten als Punkte, Kamera-Rahmen, Klick zum Springen
 - [x] Produktionswarteschlange mit Fortschrittsbalken für das Rathaus
 - [ ] Benachrichtigungen: "Zu wenig Nahrung", "Bevölkerungslimit erreicht", "Wir werden angegriffen!"

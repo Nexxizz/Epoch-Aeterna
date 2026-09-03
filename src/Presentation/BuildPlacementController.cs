@@ -67,6 +67,7 @@ public sealed partial class BuildPlacementController : Node3D
 
         // What the age does not offer yet cannot even be picked up.
         if (player.AgeIndex < definition.RequiredAgeIndex) return;
+        if (!HasCompletedBuilding(player.Id, definition.RequiredBuildingId)) return;
 
         _pending = definition;
 
@@ -92,6 +93,18 @@ public sealed partial class BuildPlacementController : Node3D
         _ghost.Visible = true;
 
         PlacementChanged?.Invoke(_pending);
+    }
+
+    private bool HasCompletedBuilding(int ownerId, string definitionId)
+    {
+        if (_world is null || string.IsNullOrEmpty(definitionId)) return true;
+        foreach (Building building in _world.Entities.Buildings)
+        {
+            if (building.OwnerId == ownerId && building.DefinitionId == definitionId &&
+                !building.IsUnderConstruction)
+                return true;
+        }
+        return false;
     }
 
     public void Cancel()

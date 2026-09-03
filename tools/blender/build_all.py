@@ -37,6 +37,9 @@ ASSETS = [
     "bld_house",
     "bld_storehouse",
     "bld_farm",
+    "bld_barracks",
+    "bld_range",
+    "bld_tower",
     "unit_settler",
 ]
 

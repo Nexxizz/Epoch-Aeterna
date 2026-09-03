@@ -76,9 +76,21 @@ public static class SelfTestPhase3
             definitions.GetBuilding("bld_range")?.RequiredAgeIndex == 1);
         check("Archery range requires barracks",
             definitions.GetBuilding("bld_range")?.RequiredBuildingId == "bld_barracks");
+        check("Barracks trains Stone Age and Copper Age melee units",
+            definitions.GetBuilding("bld_barracks")?.TrainableUnitIds is { Length: 2 } melee &&
+            System.Array.IndexOf(melee, "unit_spearman") >= 0 &&
+            System.Array.IndexOf(melee, "unit_swordsman") >= 0);
+        check("Archery range trains Stone Age and Copper Age ranged units",
+            definitions.GetBuilding("bld_range")?.TrainableUnitIds is { Length: 2 } ranged &&
+            System.Array.IndexOf(ranged, "unit_slinger") >= 0 &&
+            System.Array.IndexOf(ranged, "unit_archer") >= 0);
 
         check("Archer uses a projectile",
             definitions.GetUnit("unit_archer") is { UsesProjectile: true, DamageType: DamageType.Ranged });
+        check("Watchtower is configured as a ranged defensive building",
+            definitions.GetBuilding("bld_tower") is
+                { AttackDamage: > 0f, AttackRange: >= 18f, VisionRange: >= 24f,
+                  DamageType: DamageType.Ranged });
 
         // The fallback is nothing but ones. If something else shows up here, the .tres
         // really was loaded — which is exactly what was missing before.
@@ -298,6 +310,24 @@ public static class SelfTestPhase3
         float targetHealth = target.Health;
         for (int i = 0; i < 200 && target.Health >= targetHealth; i++) world.Tick();
         check("Projectile deals damage on impact", target.Health < targetHealth);
+
+        // A completed watchtower autonomously acquires an intruder and shoots from its platform.
+        Vector2 towerPosition = arena + new Vector2(-32f, 0f);
+        Building tower = world.SpawnBuilding("bld_tower", attacker.Id, towerPosition)!;
+        Unit intruder = world.SpawnUnit(
+            "unit_settler", defender.Id, towerPosition + new Vector2(8f, 0f))!;
+        world.FlushSpawns();
+        world.Projectiles.Clear();
+
+        float intruderHealth = intruder.Health;
+        for (int i = 0; i < 20 && world.Projectiles.Count == 0; i++) world.Tick();
+        check("Watchtower automatically launches a projectile",
+            world.Projectiles.Exists(projectile =>
+                projectile.Origin.DistanceTo(tower.Position) < 0.1f &&
+                projectile.OriginHeight >= 4.5f));
+
+        for (int i = 0; i < 200 && intruder.Health >= intruderHealth; i++) world.Tick();
+        check("Watchtower projectile damages an intruder", intruder.Health < intruderHealth);
 
         // Counter matrix: the same raw damage has different effects.
         Building wall = world.SpawnBuilding("bld_house", defender.Id, arena + new Vector2(20f, 20f))!;

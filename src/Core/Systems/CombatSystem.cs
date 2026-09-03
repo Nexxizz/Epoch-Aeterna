@@ -157,6 +157,7 @@ public sealed class CombatSystem : ISimulationSystem
             Damage = building.AttackDamage,
             DamageType = building.DamageType,
             Speed = building.ProjectileSpeed,
+            OriginHeight = 5.0f,
             TotalDistance = building.Position.DistanceTo(target.Position),
         });
     }

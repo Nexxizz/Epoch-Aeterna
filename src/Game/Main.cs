@@ -154,7 +154,7 @@ public partial class Main : Node3D
 
         var buildMenu = new BuildMenu { Name = "BuildMenu" };
         _worldRoot.AddChild(buildMenu);
-        buildMenu.Attach(_definitions, _selection, _placement);
+        buildMenu.Attach(World, _selection, _placement, LocalPlayerId);
 
         var trainingMenu = new TrainingMenu { Name = "TrainingMenu" };
         _worldRoot.AddChild(trainingMenu);

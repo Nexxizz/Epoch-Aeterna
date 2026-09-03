@@ -69,7 +69,8 @@ public sealed partial class ProjectileRenderer : Node3D
             float t = projectile.FlightProgress;
             float arc = 4f * t * (1f - t) * projectile.TotalDistance * ArcFactor;
 
-            var position = new Vector3(planar.X, ground + 1.1f + arc, planar.Y);
+            float flightHeight = Mathf.Lerp(projectile.OriginHeight, projectile.TargetHeight, t);
+            var position = new Vector3(planar.X, ground + flightHeight + arc, planar.Y);
 
             // Tilt along the direction of flight, so the arrow does not drift sideways.
             Vector2 heading = projectile.TargetPosition - planar;
