@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "bld_towncenter"
-DisplayName = "Rathaus"
-Description = "Herz der Siedlung: bildet Siedler aus, nimmt Ressourcen an und ermoeglicht den Zeitalteraufstieg."
+DisplayName = "Town Centre"
+Description = "The heart of the settlement: trains settlers, accepts resources and enables age advancement."
 Cost = SubResource("Resource_cost")
 BuildTimeSeconds = 60.0
 MaxHealth = 1500.0

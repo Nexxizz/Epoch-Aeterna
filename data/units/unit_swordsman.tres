@@ -13,8 +13,8 @@ Gold = 40
 [resource]
 script = ExtResource("1_def")
 Id = "unit_swordsman"
-DisplayName = "Schwertkaempfer"
-Description = "Schwer gepanzerter Nahkaempfer der Kupferzeit."
+DisplayName = "Swordsman"
+Description = "A heavily armoured melee fighter of the Copper Age."
 BuildTimeSeconds = 18.0
 MaxHealth = 150.0
 Armor = 3.0

@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "unit_slinger"
-DisplayName = "Schleuderer"
-Description = "Fernkampf der Steinzeit. Im Nahkampf hilflos."
+DisplayName = "Slinger"
+Description = "A Stone Age ranged fighter. Helpless in close combat."
 BuildTimeSeconds = 13.0
 MaxHealth = 60.0
 Armor = 0.0

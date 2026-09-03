@@ -252,11 +252,11 @@ public partial class Main : Node3D
     {
         if (_match is null || World is null) return;
 
-        GD.Print($"[Karte] {_match.Map.Grid.Width}x{_match.Map.Grid.Height} Kacheln, " +
-                 $"{_match.Map.ResourceSpots.Count} Vorkommen, {_match.Map.Decorations.Count} Beiwerk.");
+        GD.Print($"[Map] {_match.Map.Grid.Width}x{_match.Map.Grid.Height} tiles, " +
+                 $"{_match.Map.ResourceSpots.Count} resource deposits, {_match.Map.Decorations.Count} decorations.");
 
-        GD.Print($"[Match] {World.Players.Count} Spieler, {World.Entities.Count} Entities, " +
-                 $"{World.Systems.Count} Systeme, Tickrate {SimulationWorld.TicksPerSecond} Hz.");
+        GD.Print($"[Match] {World.Players.Count} players, {World.Entities.Count} entities, " +
+                 $"{World.Systems.Count} systems, tick rate {SimulationWorld.TicksPerSecond} Hz.");
     }
 
     private void SetupScreenshotMode()
@@ -286,7 +286,7 @@ public partial class Main : Node3D
 
         GD.Print(error == Error.Ok
             ? $"[Screenshot] {_screenshotPath} ({image.GetWidth()}x{image.GetHeight()})"
-            : $"[Screenshot] Fehlgeschlagen: {error}");
+            : $"[Screenshot] Failed: {error}");
 
         _screenshotPath = null;
         GetTree().Quit(error == Error.Ok ? 0 : 1);

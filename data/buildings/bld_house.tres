@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "bld_house"
-DisplayName = "Haus"
-Description = "Beherbergt zehn weitere Siedler."
+DisplayName = "House"
+Description = "Provides room for ten additional settlers."
 Cost = SubResource("Resource_cost")
 BuildTimeSeconds = 20.0
 MaxHealth = 350.0

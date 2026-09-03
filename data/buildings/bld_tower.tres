@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "bld_tower"
-DisplayName = "Wachturm"
-Description = "Schiesst selbstaendig und sieht weit."
+DisplayName = "Watchtower"
+Description = "Automatically attacks enemies and has a long line of sight."
 BuildTimeSeconds = 35.0
 MaxHealth = 900.0
 Armor = 4.0

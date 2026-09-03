@@ -6,6 +6,6 @@
 script = ExtResource("1_age")
 Id = "age_stone"
 Index = 0
-DisplayName = "Steinzeit"
+DisplayName = "Stone Age"
 ResearchTimeSeconds = 0.0
 RequiredDistinctBuildings = 0

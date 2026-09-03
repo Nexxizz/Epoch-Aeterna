@@ -6,7 +6,7 @@ using EpochAeterna.Core.Simulation;
 
 namespace EpochAeterna.Presentation;
 
-/// <summary>Sieg- oder Niederlagebildschirm mit der Bilanz beider Seiten.</summary>
+/// <summary>Victory or defeat screen with statistics for both sides.</summary>
 public sealed partial class MatchEndScreen : CanvasLayer
 {
     private readonly ColorRect _backdrop = new();
@@ -17,7 +17,7 @@ public sealed partial class MatchEndScreen : CanvasLayer
     private SimulationWorld? _world;
     private int _localPlayerId = 1;
 
-    /// <summary>Wird gefeuert, wenn der Spieler eine neue Partie will.</summary>
+    /// <summary>Raised when the player requests a new match.</summary>
     public event System.Action? RestartRequested;
 
     public override void _Ready()
@@ -70,18 +70,18 @@ public sealed partial class MatchEndScreen : CanvasLayer
 
         bool won = winner?.Id == _localPlayerId;
 
-        _title.Text = winner is null ? "Unentschieden" : won ? "Sieg" : "Niederlage";
+        _title.Text = winner is null ? "Draw" : won ? "Victory" : "Defeat";
         _title.AddThemeColorOverride("font_color",
             won ? new Color(0.5f, 0.95f, 0.55f) : new Color(0.95f, 0.45f, 0.4f));
 
         _body.Text = BuildStatistics(_world);
-        _hint.Text = "\n\nEingabetaste — neue Partie      ESC — beenden";
+        _hint.Text = "\n\nEnter — new match      Esc — quit";
 
         Layout();
         Visible = true;
     }
 
-    /// <summary>Zentriert die Beschriftungen. Wird auch bei Groessenaenderung erneut aufgerufen.</summary>
+    /// <summary>Centres the labels. Called again whenever the viewport size changes.</summary>
     private void Layout()
     {
         Vector2 size = GetViewport().GetVisibleRect().Size;
@@ -99,12 +99,12 @@ public sealed partial class MatchEndScreen : CanvasLayer
     private static string BuildStatistics(SimulationWorld world)
     {
         var builder = new StringBuilder();
-        builder.Append("Spielzeit ").Append((world.ElapsedSeconds / 60f).ToString("0.0")).AppendLine(" Minuten\n");
+        builder.Append("Match time ").Append((world.ElapsedSeconds / 60f).ToString("0.0")).AppendLine(" minutes\n");
 
         foreach (Player player in world.Players)
         {
-            builder.Append(player.Name).Append(player.IsDefeated ? "  (besiegt)" : string.Empty).AppendLine();
-            builder.Append("   Gesammelt: ");
+            builder.Append(player.Name).Append(player.IsDefeated ? "  (defeated)" : string.Empty).AppendLine();
+            builder.Append("   Gathered: ");
 
             foreach (ResourceType type in ResourceTypes.All)
             {
@@ -113,10 +113,10 @@ public sealed partial class MatchEndScreen : CanvasLayer
             }
 
             builder.AppendLine();
-            builder.Append("   Ausgebildet ").Append(player.Stats.UnitsTrained)
-                   .Append("   Gebaut ").Append(player.Stats.BuildingsCompleted)
-                   .Append("   Getoetet ").Append(player.Stats.EnemiesKilled)
-                   .Append("   Verloren ").Append(player.Stats.UnitsLost + player.Stats.BuildingsLost)
+            builder.Append("   Trained ").Append(player.Stats.UnitsTrained)
+                   .Append("   Built ").Append(player.Stats.BuildingsCompleted)
+                   .Append("   Killed ").Append(player.Stats.EnemiesKilled)
+                   .Append("   Lost ").Append(player.Stats.UnitsLost + player.Stats.BuildingsLost)
                    .AppendLine();
             builder.AppendLine();
         }

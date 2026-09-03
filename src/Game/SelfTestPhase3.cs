@@ -35,25 +35,25 @@ public static class SelfTestPhase3
     public static void Run(DefinitionDatabase definitions,
         System.Action<string> section, System.Action<string, bool> check)
     {
-        section("Phase 3 — Definitionen und Konter-Matrix");
+        section("Phase 3 — Definitions and counter matrix");
         CheckData(definitions, check);
 
-        section("Phase 3 — Ressourcenwirtschaft");
+        section("Phase 3 — Resource economy");
         CheckGathering(definitions, check);
 
-        section("Phase 3 — Bauen");
+        section("Phase 3 — Construction");
         CheckConstruction(definitions, check);
 
-        section("Phase 3 — Kampf");
+        section("Phase 3 — Combat");
         CheckCombat(definitions, check);
 
-        section("Phase 3 — Zeitalteraufstieg");
+        section("Phase 3 — Age advancement");
         CheckAgeAdvance(definitions, check);
 
-        section("Phase 3 — Nebel des Krieges");
+        section("Phase 3 — Fog of war");
         CheckFog(definitions, check);
 
-        section("Phase 3 — Siegbedingung");
+        section("Phase 3 — Victory condition");
         CheckVictory(definitions, check);
     }
 
@@ -61,32 +61,32 @@ public static class SelfTestPhase3
 
     private static void CheckData(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
-        check("Vier Vorkommen-Definitionen geladen", definitions.ResourceNodes.Count == 4);
-        check("Sieben Gebaeude-Definitionen geladen", definitions.Buildings.Count == 7);
-        check("Sechs Einheiten-Definitionen geladen", definitions.Units.Count == 6);
+        check("Four resource deposit definitions loaded", definitions.ResourceNodes.Count == 4);
+        check("Seven building definitions loaded", definitions.Buildings.Count == 7);
+        check("Six unit definitions loaded", definitions.Units.Count == 6);
 
-        check("Baum liefert Holz", definitions.GetResourceNode("res_tree")?.Resource == ResourceType.Wood);
-        check("Beeren liefern Nahrung und blockieren nicht",
+        check("Tree yields wood", definitions.GetResourceNode("res_tree")?.Resource == ResourceType.Wood);
+        check("Berries yield food and do not block movement",
             definitions.GetResourceNode("res_berries") is { Resource: ResourceType.Food, BlocksMovement: false });
 
-        check("Schiessstand verlangt die Kupferzeit",
+        check("Archery range requires the Copper Age",
             definitions.GetBuilding("bld_range")?.RequiredAgeIndex == 1);
-        check("Schiessstand verlangt eine Kaserne",
+        check("Archery range requires barracks",
             definitions.GetBuilding("bld_range")?.RequiredBuildingId == "bld_barracks");
 
-        check("Bogenschuetze nutzt ein Geschoss",
+        check("Archer uses a projectile",
             definitions.GetUnit("unit_archer") is { UsesProjectile: true, DamageType: DamageType.Ranged });
 
         // Der Fallback besteht nur aus Einsen. Wenn hier etwas anderes steht,
         // wurde die .tres tatsaechlich geladen — genau das hat vorher gefehlt.
-        check("Konter-Matrix stammt aus der .tres, nicht vom Fallback",
+        check("Counter matrix comes from the .tres, not the fallback",
             !Mathf.IsEqualApprox(definitions.Combat.Get(DamageType.Siege, ArmorClass.Building), 1f));
 
-        check("Belagerung ist stark gegen Gebaeude",
+        check("Siege damage is strong against buildings",
             definitions.Combat.Get(DamageType.Siege, ArmorClass.Building) > 3f);
-        check("Belagerung ist schwach gegen Zivilisten",
+        check("Siege damage is weak against civilians",
             definitions.Combat.Get(DamageType.Siege, ArmorClass.Civilian) < 1f);
-        check("Fernkampf prallt an Gebaeuden ab",
+        check("Ranged attacks are weak against buildings",
             definitions.Combat.Get(DamageType.Ranged, ArmorClass.Building) < 0.6f);
     }
 
@@ -98,7 +98,7 @@ public static class SelfTestPhase3
         SimulationWorld world = match.World;
         Player player = world.Players[0];
 
-        check("Vorkommen auf der Karte gesetzt", world.Entities.ResourceNodes.Count > 50);
+        check("Resource deposits placed on the map", world.Entities.ResourceNodes.Count > 50);
 
         // Jede Basis muss alle vier Ressourcen in Reichweite haben, sonst entscheidet
         // der Zufall die Partie schon vor dem ersten Klick.
@@ -106,7 +106,7 @@ public static class SelfTestPhase3
         {
             foreach (ResourceType type in ResourceTypes.All)
             {
-                check($"{ResourceTypes.DisplayName(type)} nahe Startplatz",
+                check($"{ResourceTypes.DisplayName(type)} near starting position",
                     HasNodeNear(world, start, type, 40f));
             }
         }
@@ -122,16 +122,16 @@ public static class SelfTestPhase3
         });
 
         world.Tick();
-        check("Sammelbefehl gesetzt", settler.Order == UnitOrder.Gather);
+        check("Gather command assigned", settler.Order == UnitOrder.Gather);
 
         // Genug Zeit fuer Hinweg, Abbau und Rueckweg.
         int nodeAmountBefore = tree.Remaining;
         for (int i = 0; i < 2000 && player.GetResource(ResourceType.Wood) == woodBefore; i++) world.Tick();
 
-        check("Vorkommen wurde abgebaut", tree.Remaining < nodeAmountBefore || tree.IsDepleted);
-        check("Holz wurde abgeliefert", player.GetResource(ResourceType.Wood) > woodBefore);
-        check("Ertrag in der Statistik", player.Stats.GetGathered(ResourceType.Wood) > 0);
-        check("Siedler sammelt weiter", settler.Order == UnitOrder.Gather);
+        check("Resource deposit was harvested", tree.Remaining < nodeAmountBefore || tree.IsDepleted);
+        check("Wood was delivered", player.GetResource(ResourceType.Wood) > woodBefore);
+        check("Yield recorded in statistics", player.Stats.GetGathered(ResourceType.Wood) > 0);
+        check("Settler continues gathering", settler.Order == UnitOrder.Gather);
     }
 
     // --- Bauen -----------------------------------------------------------
@@ -157,39 +157,39 @@ public static class SelfTestPhase3
         });
         world.Tick();
 
-        check("Kosten sofort abgebucht", player.GetResource(ResourceType.Wood) == woodBefore - 30);
-        check("Baustelle gesetzt", world.Entities.Buildings.Count == buildingsBefore + 1);
+        check("Cost deducted immediately", player.GetResource(ResourceType.Wood) == woodBefore - 30);
+        check("Construction site placed", world.Entities.Buildings.Count == buildingsBefore + 1);
 
         Building site = FindBuilding(world, player.Id, "bld_house")!;
-        check("Baustelle beginnt bei null Fortschritt", site.ConstructionProgress < 0.01f);
-        check("Baustelle hebt das Limit noch nicht", player.PopulationCap == 5);
-        check("Siedler hat Bauauftrag", settler.Order == UnitOrder.Build);
+        check("Construction site starts at zero progress", site.ConstructionProgress < 0.01f);
+        check("Construction site does not raise the cap yet", player.PopulationCap == 5);
+        check("Settler has a build order", settler.Order == UnitOrder.Build);
 
         for (int i = 0; i < 1500 && site.IsUnderConstruction; i++) world.Tick();
 
-        check("Gebaeude fertiggestellt", !site.IsUnderConstruction);
-        check("Volle Lebenspunkte nach dem Bau", Mathf.IsEqualApprox(site.Health, site.MaxHealth));
-        check("Haus hebt jetzt das Limit", player.PopulationCap == 15);
-        check("Fertigstellung in der Statistik", player.Stats.BuildingsCompleted == 1);
-        check("Siedler wieder frei", settler.Order == UnitOrder.Idle);
+        check("Building completed", !site.IsUnderConstruction);
+        check("Full health after construction", Mathf.IsEqualApprox(site.Health, site.MaxHealth));
+        check("House now raises the cap", player.PopulationCap == 15);
+        check("Completion recorded in statistics", player.Stats.BuildingsCompleted == 1);
+        check("Settler is idle again", settler.Order == UnitOrder.Idle);
 
         // Mehrere Siedler bauen schneller, aber nicht linear schneller.
-        check("Mehr Bauarbeiter bringen weniger als das Vielfache",
+        check("Additional builders contribute less than a linear multiple",
             EffectiveBuildersMonotonic());
 
         int woodAfter = player.GetResource(ResourceType.Wood);
         world.Commands.Enqueue(new DemolishCommand { PlayerId = player.Id, Building = site.Id });
         world.Tick();
 
-        check("Abriss entfernt das Gebaeude", !world.Entities.Exists(site.Id));
-        check("Abriss erstattet einen Teil", player.GetResource(ResourceType.Wood) == woodAfter + 15);
+        check("Demolition removes the building", !world.Entities.Exists(site.Id));
+        check("Demolition provides a partial refund", player.GetResource(ResourceType.Wood) == woodAfter + 15);
 
         // Bauplatzpruefung: mitten im eigenen Rathaus darf nichts entstehen.
         Building townCenter = FindBuilding(world, player.Id, "bld_towncenter")!;
-        check("Bauen auf besetztem Grund abgelehnt",
+        check("Building on occupied ground rejected",
             !BuildPlacement.IsValid(world, definitions.GetBuilding("bld_house")!, townCenter.Position, player));
 
-        check("Schiessstand in der Steinzeit abgelehnt",
+        check("Archery range rejected in the Stone Age",
             !BuildPlacement.IsValid(world, definitions.GetBuilding("bld_range")!, spot, player));
     }
 
@@ -232,13 +232,13 @@ public static class SelfTestPhase3
 
         for (int i = 0; i < 60; i++) world.Tick();
 
-        check("Nahkaempfer fuegt Schaden zu", victim.Health < victimHealth);
+        check("Melee fighter deals damage", victim.Health < victimHealth);
 
         for (int i = 0; i < 400 && world.Entities.Exists(victim.Id); i++) world.Tick();
 
-        check("Ziel wurde getoetet", !world.Entities.Exists(victim.Id));
-        check("Abschuss in der Statistik", attacker.Stats.EnemiesKilled >= 1);
-        check("Verlust in der Statistik", defender.Stats.UnitsLost >= 1);
+        check("Target was killed", !world.Entities.Exists(victim.Id));
+        check("Kill recorded in statistics", attacker.Stats.EnemiesKilled >= 1);
+        check("Loss recorded in statistics", defender.Stats.UnitsLost >= 1);
 
         // Fernkampf: das Geschoss muss unterwegs sein, bevor es trifft.
         Unit archer = world.SpawnUnit("unit_slinger", attacker.Id, arena)!;
@@ -257,11 +257,11 @@ public static class SelfTestPhase3
             if (world.Projectiles.Count > 0) sawProjectile = true;
         }
 
-        check("Fernkaempfer verschiesst ein Geschoss", sawProjectile);
+        check("Ranged fighter launches a projectile", sawProjectile);
 
         float targetHealth = target.Health;
         for (int i = 0; i < 200 && target.Health >= targetHealth; i++) world.Tick();
-        check("Geschoss richtet beim Einschlag Schaden an", target.Health < targetHealth);
+        check("Projectile deals damage on impact", target.Health < targetHealth);
 
         // Konter-Matrix: derselbe Rohschaden wirkt unterschiedlich.
         Building wall = world.SpawnBuilding("bld_house", defender.Id, arena + new Vector2(20f, 20f))!;
@@ -275,7 +275,7 @@ public static class SelfTestPhase3
         world.ApplyDamage(wall, 20f, DamageType.Ranged, attacker.Id);
         float rangedDamage = before - wall.Health;
 
-        check("Belagerung schadet Gebaeuden mehr als Fernkampf", siegeDamage > rangedDamage * 2f);
+        check("Siege damage hurts buildings more than ranged damage", siegeDamage > rangedDamage * 2f);
     }
 
     // --- Zeitalter -------------------------------------------------------
@@ -288,14 +288,14 @@ public static class SelfTestPhase3
 
         Building townCenter = FindBuilding(world, player.Id, "bld_towncenter")!;
 
-        check("Start in der Steinzeit", player.AgeIndex == 0);
+        check("Match starts in the Stone Age", player.AgeIndex == 0);
 
         // Ohne zweites Gebaeude fehlt die Voraussetzung.
         foreach (ResourceType type in ResourceTypes.All) player.SetResource(type, 2000);
 
         world.Commands.Enqueue(new AdvanceAgeCommand { PlayerId = player.Id, Building = townCenter.Id });
         world.Tick();
-        check("Aufstieg ohne zweites Gebaeude abgelehnt", !townCenter.IsResearchingAge);
+        check("Advancement rejected without a second building", !townCenter.IsResearchingAge);
 
         // Zweites Gebaeude fertig hinstellen, dann klappt es.
         world.SpawnBuilding("bld_house", player.Id, townCenter.Position + new Vector2(16f, 16f));
@@ -305,22 +305,22 @@ public static class SelfTestPhase3
         world.Commands.Enqueue(new AdvanceAgeCommand { PlayerId = player.Id, Building = townCenter.Id });
         world.Tick();
 
-        check("Aufstieg gestartet", townCenter.IsResearchingAge);
-        check("Aufstieg kostet Ressourcen", player.GetResource(ResourceType.Food) < foodBefore);
+        check("Age advancement started", townCenter.IsResearchingAge);
+        check("Age advancement costs resources", player.GetResource(ResourceType.Food) < foodBefore);
 
         AgeDefinition copper = definitions.GetAge(1)!;
         int ticks = Mathf.CeilToInt(copper.ResearchTimeSeconds / SimulationWorld.TickDelta) + 5;
         for (int i = 0; i < ticks; i++) world.Tick();
 
-        check("Kupferzeit erreicht", player.AgeIndex == 1);
-        check("Forschung beendet", !townCenter.IsResearchingAge);
+        check("Copper Age reached", player.AgeIndex == 1);
+        check("Research completed", !townCenter.IsResearchingAge);
 
         // Was das Zeitalter voraussetzt, ist jetzt erlaubt — mit Kaserne als Vorbedingung.
         world.SpawnBuilding("bld_barracks", player.Id, townCenter.Position + new Vector2(-16f, 16f));
         world.FlushSpawns();
 
         Vector2 spot = FindBuildSpot(world, townCenter.Position, definitions.GetBuilding("bld_range")!, player);
-        check("Schiessstand jetzt baubar",
+        check("Archery range can now be built",
             BuildPlacement.IsValid(world, definitions.GetBuilding("bld_range")!, spot, player));
     }
 
@@ -344,15 +344,15 @@ public static class SelfTestPhase3
         Vector2I home = world.Nav.WorldToCell(match.StartOf(0));
         Vector2I enemy = world.Nav.WorldToCell(match.StartOf(1));
 
-        check("Eigene Basis ist sichtbar", vision.IsVisible(home.X, home.Y));
-        check("Gegnerische Basis ist unbekannt", !vision.IsExplored(enemy.X, enemy.Y));
+        check("Own base is visible", vision.IsVisible(home.X, home.Y));
+        check("Enemy base is unexplored", !vision.IsExplored(enemy.X, enemy.Y));
 
         // Einen Spaeher an die Feindbasis setzen und die Sicht neu aufbauen lassen.
         world.SpawnUnit("unit_scout", player.Id, match.StartOf(1));
         world.FlushSpawns();
         for (int i = 0; i < VisionSystem.RebuildInterval + 1; i++) world.Tick();
 
-        check("Erkundetes Gebiet wird sichtbar", vision.IsVisible(enemy.X, enemy.Y));
+        check("Explored area becomes visible", vision.IsVisible(enemy.X, enemy.Y));
 
         // Spaeher entfernen: das Gebiet bleibt erkundet, ist aber nicht mehr einsehbar.
         foreach (Unit unit in new List<Unit>(world.Entities.Units))
@@ -361,8 +361,8 @@ public static class SelfTestPhase3
         }
         for (int i = 0; i < VisionSystem.RebuildInterval * 2; i++) world.Tick();
 
-        check("Verlassenes Gebiet bleibt erkundet", vision.IsExplored(enemy.X, enemy.Y));
-        check("Verlassenes Gebiet ist nicht mehr einsehbar", !vision.IsVisible(enemy.X, enemy.Y));
+        check("Abandoned area remains explored", vision.IsExplored(enemy.X, enemy.Y));
+        check("Abandoned area is no longer visible", !vision.IsVisible(enemy.X, enemy.Y));
     }
 
     // --- Sieg ------------------------------------------------------------
@@ -373,7 +373,7 @@ public static class SelfTestPhase3
         SimulationWorld world = match.World;
         Player loser = world.Players[1];
 
-        check("Partie laeuft zu Beginn", !world.IsOver);
+        check("Match is running at the start", !world.IsOver);
 
         // Alles des zweiten Spielers entfernen.
         foreach (Entity entity in new List<Entity>(world.Entities.All()))
@@ -383,10 +383,10 @@ public static class SelfTestPhase3
 
         for (int i = 0; i < 30 && !world.IsOver; i++) world.Tick();
 
-        check("Spieler ohne Basis gilt als besiegt", loser.IsDefeated);
-        check("Partie ist beendet", world.IsOver);
-        check("Der andere Spieler hat gewonnen", world.Winner?.Id == world.Players[0].Id);
-        check("Beendete Partie tickt nicht weiter", TickIsFrozen(world));
+        check("Player without a base is defeated", loser.IsDefeated);
+        check("Match has ended", world.IsOver);
+        check("The other player has won", world.Winner?.Id == world.Players[0].Id);
+        check("Completed match no longer ticks", TickIsFrozen(world));
     }
 
     private static bool TickIsFrozen(SimulationWorld world)

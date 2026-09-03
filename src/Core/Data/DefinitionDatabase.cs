@@ -44,8 +44,8 @@ public sealed class DefinitionDatabase
         _agesByIndex.AddRange(_ages.Values);
         _agesByIndex.Sort(static (a, b) => a.Index.CompareTo(b.Index));
 
-        GD.Print($"[Definitions] {_units.Count} Einheiten, {_buildings.Count} Gebaeude, " +
-                 $"{_resourceNodes.Count} Vorkommen, {_agesByIndex.Count} Zeitalter geladen.");
+        GD.Print($"[Definitions] {_units.Count} units, {_buildings.Count} buildings, " +
+                 $"{_resourceNodes.Count} resource deposits, {_agesByIndex.Count} ages loaded.");
     }
 
     private void ScanDirectory(string path)
@@ -53,7 +53,7 @@ public sealed class DefinitionDatabase
         using DirAccess? dir = DirAccess.Open(path);
         if (dir is null)
         {
-            GD.PushWarning($"[Definitions] Ordner nicht lesbar: {path}");
+            GD.PushWarning($"[Definitions] Directory cannot be read: {path}");
             return;
         }
 
@@ -112,12 +112,12 @@ public sealed class DefinitionDatabase
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            GD.PushError($"[Definitions] Definition ohne Id uebersprungen: {resPath}");
+            GD.PushError($"[Definitions] Skipping definition without an id: {resPath}");
             return false;
         }
         if (duplicate)
         {
-            GD.PushError($"[Definitions] Doppelte Id '{id}' — {resPath} wird ignoriert.");
+            GD.PushError($"[Definitions] Duplicate id '{id}' — ignoring {resPath}.");
             return false;
         }
         return true;

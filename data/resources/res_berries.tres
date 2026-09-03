@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_def")
 Id = "res_berries"
-DisplayName = "Beerenbusch"
-Description = "Fruehe Nahrungsquelle, schnell erschoepft."
+DisplayName = "Berry Bush"
+Description = "An early food source that is quickly depleted."
 MaxHealth = 1.0
 VisionRange = 0.0
 Resource = 0

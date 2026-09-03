@@ -33,7 +33,7 @@ public sealed class ProductionSystem : ISimulationSystem
             UnitDefinition? definition = world.Definitions.GetUnit(order.UnitDefinitionId);
             if (definition is null)
             {
-                GD.PushError($"[Production] Unbekannte Einheiten-Id '{order.UnitDefinitionId}' verworfen.");
+                GD.PushError($"[Production] Discarding unknown unit id '{order.UnitDefinitionId}'.");
                 building.Queue.RemoveAt(0);
                 continue;
             }

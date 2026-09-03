@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_def")
 Id = "res_gold"
-DisplayName = "Goldader"
-Description = "Gibt sich zaeher als alles andere."
+DisplayName = "Gold Vein"
+Description = "Slower to gather than any other resource."
 MaxHealth = 1.0
 VisionRange = 0.0
 Resource = 3

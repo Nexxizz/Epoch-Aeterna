@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_def")
 Id = "res_tree"
-DisplayName = "Baum"
-Description = "Liefert Holz, bis er gefaellt ist."
+DisplayName = "Tree"
+Description = "Provides wood until it is felled."
 MaxHealth = 1.0
 VisionRange = 0.0
 Resource = 1

@@ -1,12 +1,12 @@
 namespace EpochAeterna.Core.Data;
 
 /// <summary>
-/// Ressourcenarten des Spiels. Die Reihenfolge ist die Anzeigereihenfolge im HUD.
+/// The game's resource types. The order here is the display order in the HUD.
 /// </summary>
 /// <remarks>
-/// Eine neue Ressource (z. B. Eisen ab der Eisenzeit) hinzuzufuegen erfordert genau
-/// drei Aenderungen: einen Eintrag hier, ein Feld in <see cref="ResourceSet"/> samt
-/// Zeile im dortigen Indexer, und <see cref="ResourceTypes.Count"/> waechst automatisch mit.
+/// Adding a resource (iron from the Iron Age, say) takes exactly three changes:
+/// an entry here, a field in <see cref="ResourceSet"/> plus a line in its indexer,
+/// and <see cref="ResourceTypes.Count"/> grows on its own.
 /// </remarks>
 public enum ResourceType
 {
@@ -30,9 +30,9 @@ public static class ResourceTypes
 
     public static string DisplayName(ResourceType type) => type switch
     {
-        ResourceType.Food => "Nahrung",
-        ResourceType.Wood => "Holz",
-        ResourceType.Stone => "Stein",
+        ResourceType.Food => "Food",
+        ResourceType.Wood => "Wood",
+        ResourceType.Stone => "Stone",
         ResourceType.Gold => "Gold",
         _ => type.ToString(),
     };

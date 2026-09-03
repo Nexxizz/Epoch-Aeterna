@@ -13,8 +13,8 @@ Gold = 20
 [resource]
 script = ExtResource("1_def")
 Id = "unit_archer"
-DisplayName = "Bogenschuetze"
-Description = "Reichweitenstarker Fernkaempfer der Kupferzeit."
+DisplayName = "Archer"
+Description = "A long-ranged fighter of the Copper Age."
 BuildTimeSeconds = 19.0
 MaxHealth = 75.0
 Armor = 1.0

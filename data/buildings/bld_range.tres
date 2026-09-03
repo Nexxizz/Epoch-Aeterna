@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "bld_range"
-DisplayName = "Schiessstand"
-Description = "Bildet Fernkampfeinheiten aus."
+DisplayName = "Archery Range"
+Description = "Trains ranged units."
 BuildTimeSeconds = 40.0
 MaxHealth = 650.0
 Armor = 2.0

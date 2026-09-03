@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "unit_spearman"
-DisplayName = "Speerkaempfer"
-Description = "Guenstige Nahkampf-Grundeinheit der Steinzeit."
+DisplayName = "Spearman"
+Description = "An inexpensive basic melee unit of the Stone Age."
 BuildTimeSeconds = 12.0
 MaxHealth = 90.0
 Armor = 1.0

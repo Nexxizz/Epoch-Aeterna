@@ -3,10 +3,12 @@ using Godot;
 namespace EpochAeterna.Core.Data;
 
 /// <summary>
-/// Ein Bündel aus Ressourcenmengen — als Kosten, Ertrag oder Startausstattung verwendbar.
-/// Als eigene Resource ausgelegt, damit Kosten im Godot-Inspector mit lesbaren Feldnamen
-/// statt als anonymes int-Array erscheinen.
+/// A bundle of resource amounts — usable as a cost, a yield or a starting stock.
 /// </summary>
+/// <remarks>
+/// Its own Resource type so that costs show up in the Godot inspector with readable
+/// field names instead of an anonymous int array.
+/// </remarks>
 [GlobalClass]
 public partial class ResourceSet : Resource
 {
@@ -15,7 +17,7 @@ public partial class ResourceSet : Resource
     [Export] public int Stone { get; set; }
     [Export] public int Gold { get; set; }
 
-    /// <summary>Zugriff ueber den Enum-Wert, damit Systeme nicht pro Ressource verzweigen muessen.</summary>
+    /// <summary>Access by enum value, so systems don't have to branch per resource.</summary>
     public int this[ResourceType type]
     {
         get => type switch
@@ -67,6 +69,6 @@ public partial class ResourceSet : Resource
         {
             if (this[type] != 0) parts.Add($"{this[type]} {ResourceTypes.DisplayName(type)}");
         }
-        return parts.Count == 0 ? "kostenlos" : string.Join(", ", parts);
+        return parts.Count == 0 ? "free" : string.Join(", ", parts);
     }
 }

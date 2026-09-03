@@ -147,7 +147,7 @@ public static class MatchSetup
             new PlayerConfig
             {
                 Id = 1,
-                Name = "Spieler",
+                Name = "Player",
                 Color = new Color(0.20f, 0.45f, 0.85f),
                 TeamId = 1,
                 IsHuman = true,
@@ -155,7 +155,7 @@ public static class MatchSetup
             new PlayerConfig
             {
                 Id = 2,
-                Name = "KI",
+                Name = "Computer",
                 Color = new Color(0.80f, 0.25f, 0.20f),
                 TeamId = 2,
                 IsHuman = false,

@@ -183,7 +183,7 @@ public sealed class SimulationWorld
         UnitDefinition? definition = Definitions.GetUnit(definitionId);
         if (definition is null)
         {
-            GD.PushError($"[Spawn] Unbekannte Einheiten-Id '{definitionId}'.");
+            GD.PushError($"[Spawn] Unknown unit id '{definitionId}'.");
             return null;
         }
 
@@ -204,7 +204,7 @@ public sealed class SimulationWorld
         BuildingDefinition? definition = Definitions.GetBuilding(definitionId);
         if (definition is null)
         {
-            GD.PushError($"[Spawn] Unbekannte Gebaeude-Id '{definitionId}'.");
+            GD.PushError($"[Spawn] Unknown building id '{definitionId}'.");
             return null;
         }
 
@@ -229,7 +229,7 @@ public sealed class SimulationWorld
         var definition = Definitions.GetResourceNode(definitionId);
         if (definition is null)
         {
-            GD.PushError($"[Spawn] Unbekannte Vorkommen-Id '{definitionId}'.");
+            GD.PushError($"[Spawn] Unknown resource deposit id '{definitionId}'.");
             return null;
         }
 

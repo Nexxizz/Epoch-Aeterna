@@ -1,145 +1,151 @@
 # Epoch Aeterna
 
-Echtzeit-Strategiespiel im Stil von *Empire Earth*: Ressourcen sammeln, Basis bauen,
-Armee aufstellen, durch Zeitalter aufsteigen.
+A real-time strategy game inspired by *Empire Earth*: gather resources, build a base,
+raise an army, and advance through the ages.
 
-Der Umsetzungsplan mit allen Arbeitspaketen steht in **[docs/MVP_PLAN.md](docs/MVP_PLAN.md)**.
+The detailed implementation plan is available in **[docs/MVP_PLAN.md](docs/MVP_PLAN.md)**.
 
 ---
 
 ## Toolchain
 
-| Werkzeug | Version | Pfad |
+| Tool | Version | Path |
 |---|---|---|
 | Godot .NET | 4.7.2 stable mono | `C:\Godot\Godot_v4.7.2-stable_mono_win64.exe` |
 | .NET SDK | 8.0.424 | `C:\Program Files\dotnet` |
 | Blender | 5.2 | `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe` |
 | Git LFS | 3.7.1 | — |
 
-> ⚠️ Unter `C:\Program Files\Godot` liegt zusätzlich ein **Godot 4.4.1 ohne C#-Support**.
-> Für dieses Projekt immer den Build aus `C:\Godot` verwenden.
-> Erkennungsmerkmal: `--version` enthält `.mono.`, und neben dem Exe liegt ein `GodotSharp/`-Ordner.
+> ⚠️ `C:\Program Files\Godot` also contains **Godot 4.4.1 without C# support**.
+> Always use the build in `C:\Godot` for this project.
+> You can identify it by `.mono.` in the `--version` output and a `GodotSharp/`
+> directory next to the executable.
 
-## Bauen und Starten
+## Build and run
 
-C#-Assembly bauen:
+Build the C# assembly:
 
 ```bash
 dotnet build
 ```
 
-Spiel starten (Editor):
+Start the game in the editor:
 
 ```bash
 "C:/Godot/Godot_v4.7.2-stable_mono_win64.exe" --path .
 ```
 
-Spiel direkt starten, ohne Editor:
+Start the game directly without the editor:
 
 ```bash
 "C:/Godot/Godot_v4.7.2-stable_mono_win64.exe" --path . scenes/Main.tscn
 ```
 
-Selbsttest der Simulation ohne Fenster und ohne SceneTree (CI-tauglich, Exit-Code 0 = alles grün):
+Run the simulation self-test without a window or SceneTree (CI-friendly; exit code
+0 means all checks passed):
 
 ```bash
 "C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --path . -- --verify
 ```
 
-Screenshot ohne Interaktion aufnehmen (prüft Beleuchtung und Szenenaufbau, CI-tauglich):
+Capture a screenshot without interaction (checks lighting and scene setup and is
+CI-friendly):
 
 ```bash
 "C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --path . -- "--shot=C:/temp/shot.png"
 ```
 
-## Steuerung (Stand Phase 3)
+## Controls (Phase 3)
 
-**Kamera**
+**Camera**
 
-| Eingabe | Wirkung |
+| Input | Action |
 |---|---|
-| Pfeiltasten / Bildschirmrand | Karte verschieben |
-| Mittlere Maustaste ziehen | Karte greifen und ziehen |
-| Mausrad | Zoom (die Neigung folgt mit) |
-| `Q` / `E` | Drehen |
-| `Pos1` | Sprung zur eigenen Basis |
+| Arrow keys / screen edge | Pan across the map |
+| Drag middle mouse button | Grab and drag the map |
+| Mouse wheel | Zoom; camera pitch adjusts with it |
+| `Q` / `E` | Rotate |
+| `Home` | Jump to your base |
 
-**Auswahl und Befehle**
+**Selection and commands**
 
-| Eingabe | Wirkung |
+| Input | Action |
 |---|---|
-| Linksklick | Auswählen |
-| Linksklick ziehen | Rahmenauswahl (Militär hat Vorrang) |
-| Doppelklick | alle sichtbaren Einheiten desselben Typs |
-| `Shift` + Klick | zur Auswahl hinzufügen / entfernen |
-| **Rechtsklick** | kontextabhängig: Boden → gehen, Vorkommen → sammeln, eigene Baustelle → bauen, Gegner → angreifen |
-| `Shift` + Rechtsklick | Befehl anhängen statt ersetzen |
-| `A` | Angriffsbewegung zur Mausposition |
-| `S` | Stopp · `H` Halten · `D` Defensiv |
-| `Strg` + `0`–`9` / `0`–`9` | Kontrollgruppe setzen / abrufen |
+| Left click | Select |
+| Drag left mouse button | Box-select; military units take priority |
+| Double-click | Select all visible units of the same type |
+| `Shift` + click | Add to or remove from the selection |
+| **Right click** | Context-sensitive: ground → move, resource → gather, own construction site → build, enemy → attack |
+| `Shift` + right click | Queue a command instead of replacing the current one |
+| `A` | Attack-move to the cursor position |
+| `S` | Stop · `H` Hold position · `D` Defensive stance |
+| `Ctrl` + `0`–`9` / `0`–`9` | Assign / recall a control group |
 
-**Bauen und Ausbilden**
+**Construction and training**
 
-| Eingabe | Wirkung |
+| Input | Action |
 |---|---|
-| `B` Haus · `N` Lagerhaus · `M` Kaserne | Bauplatzierung starten |
-| `K` Farm · `T` Wachturm · `R` Schießstand | Bauplatzierung starten |
-| Linksklick / `Shift`+Linksklick | Baustelle setzen / weitere setzen |
-| Rechtsklick oder `ESC` | Platzierung abbrechen |
-| `Entf` | ausgewähltes Gebäude abreißen |
-| `F1` / `F2` / `F3` | Siedler / Späher / Speerkämpfer ausbilden |
-| `F4` | Zeitalteraufstieg starten |
+| `B` House · `N` Storehouse · `M` Barracks | Start building placement |
+| `K` Farm · `T` Watchtower · `R` Archery Range | Start building placement |
+| Left click / `Shift` + left click | Place a construction site / place another one |
+| Right click or `Esc` | Cancel placement |
+| `Delete` | Demolish the selected building |
+| `F1` / `F2` / `F3` | Train Settler / Scout / Spearman |
+| `F4` | Start advancing to the next age |
 
-**Sonstiges:** `Leertaste` pausiert, `+` / `-` ändern das Tempo (0,5× bis 2×), `ESC` beendet.
+**Other:** `Space` pauses the game, `+` / `-` change the speed (0.5× to 2×), and
+`Esc` quits.
 
-> `WASD` ist bewusst nicht belegt: Die Buchstabentasten werden für Einheitenbefehle
-> gebraucht (`A` Angriffsbewegung, `S` Stopp, `H` Halten), wie in Empire Earth und AoE.
+> `WASD` is deliberately unassigned because the letter keys are used for unit
+> commands (`A` Attack Move, `S` Stop, `H` Hold), as in Empire Earth and Age of
+> Empires.
 
-## Blender-Assets bauen
+## Build Blender assets
 
-Alle Modelle werden prozedural per `bpy`-Skript erzeugt (ab Phase 4), nicht von Hand modelliert.
-Ausgeführt wird headless:
+All models are generated procedurally by `bpy` scripts (starting in Phase 4), rather
+than modelled by hand. Run the generator headlessly:
 
 ```bash
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py
 ```
 
-## Projektstruktur
+## Project structure
 
-```
+```text
 src/
-├─ Core/            Simulation — frei von Godot-Node-Abhaengigkeiten
-│  ├─ Simulation/   World, Fixed-Tick-Loop, Command-Queue
+├─ Core/            Simulation — no Godot Node dependencies
+│  ├─ Simulation/   World, fixed-tick loop, command queue
 │  ├─ Entities/     Entity, Unit, Building, Player
-│  ├─ Systems/      Movement, Gathering, Combat, Production, Construction
-│  ├─ Pathfinding/  Grid, A*, Flow-Field, lokale Ausweichbewegung
-│  └─ Data/         Definitions-Loader (data-driven)
-├─ Presentation/    Views, Kamera, Selektion, VFX, Fog-of-War
-├─ UI/              HUD, Panels, Minimap
-├─ AI/              Skirmish-Bot
-└─ Game/            Bootstrap, Match-Setup, Siegbedingungen
+│  ├─ Systems/      Movement, gathering, combat, production, construction
+│  ├─ Pathfinding/  Grid, A*, flow fields, local avoidance
+│  └─ Data/         Definition loader (data-driven)
+├─ Presentation/    Views, camera, selection, VFX, fog of war
+├─ UI/              HUD, panels, minimap
+├─ AI/              Skirmish bot
+└─ Game/            Bootstrap, match setup, victory conditions
 
-data/               .tres-Definitionen (Einheiten, Gebaeude, Zeitalter)
-assets/             Importierte Modelle, Texturen, Audio
-scenes/             Szenen und Entity-Prefabs
-blender/            .blend-Quelldateien (Git LFS)
-tools/blender/      bpy-Generator- und Export-Skripte
-docs/               Plan und Dokumentation
+data/               `.tres` definitions for units, buildings, and ages
+assets/             Imported models, textures, and audio
+scenes/             Scenes and entity prefabs
+blender/            `.blend` source files managed through Git LFS
+tools/blender/      `bpy` generator and export scripts
+docs/               Plans and documentation
 ```
 
-## Architektur-Grundregeln
+## Architectural principles
 
-1. **Simulation und Darstellung sind getrennt.** Die Sim läuft mit festem 20-Hz-Tick,
-   die Darstellung interpoliert dazwischen. `src/Core/` kennt keine Views.
-2. **Alle Spielaktionen laufen über die Command-Queue.** Auch die KI. Das hält
-   Multiplayer, Replays und Savegames später offen.
-3. **Data-driven:** Eine neue Einheit oder ein neues Gebäude soll *keinen* neuen
-   C#-Code erfordern — nur eine `.tres`-Definition plus Modell.
+1. **Simulation and presentation are separate.** The simulation runs at a fixed
+   20 Hz tick rate while the presentation interpolates between ticks. `src/Core/`
+   does not know about views.
+2. **Every game action goes through the command queue**, including AI actions. This
+   keeps future multiplayer, replays, and save games possible.
+3. **Data-driven:** adding a unit or building should require no new C# code—only a
+   `.tres` definition and a model.
 
 ## Git LFS
 
-Binärformate (`.blend`, `.glb`, `.png`, `.ogg` …) laufen über Git LFS, siehe `.gitattributes`.
-Nach dem Klonen einmalig:
+Binary formats (`.blend`, `.glb`, `.png`, `.ogg`, and others) are managed through
+Git LFS; see `.gitattributes`. Run this once after cloning:
 
 ```bash
 git lfs install --local

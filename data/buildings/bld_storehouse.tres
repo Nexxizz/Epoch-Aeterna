@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "bld_storehouse"
-DisplayName = "Lagerhaus"
-Description = "Abgabestelle fuer Holz, Stein und Gold — verkuerzt die Wege der Siedler."
+DisplayName = "Storehouse"
+Description = "A drop-off point for wood, stone and gold that shortens settlers' routes."
 BuildTimeSeconds = 25.0
 MaxHealth = 400.0
 Armor = 1.0

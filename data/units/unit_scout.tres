@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "unit_scout"
-DisplayName = "Spaeher"
-Description = "Schnell und weitsichtig, aber im Gefecht kaum zu gebrauchen."
+DisplayName = "Scout"
+Description = "Fast and keen-sighted, but of little use in combat."
 Cost = SubResource("Resource_cost")
 BuildTimeSeconds = 6.0
 MaxHealth = 45.0

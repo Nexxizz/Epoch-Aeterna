@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "unit_settler"
-DisplayName = "Siedler"
-Description = "Sammelt Ressourcen und errichtet Gebaeude. Wehrlos im Kampf."
+DisplayName = "Settler"
+Description = "Gathers resources and constructs buildings. Defenceless in combat."
 Cost = SubResource("Resource_cost")
 BuildTimeSeconds = 8.0
 MaxHealth = 40.0

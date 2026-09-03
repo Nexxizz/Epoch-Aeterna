@@ -13,8 +13,8 @@ Gold = 0
 [resource]
 script = ExtResource("1_def")
 Id = "bld_barracks"
-DisplayName = "Kaserne"
-Description = "Bildet Nahkampfeinheiten aus."
+DisplayName = "Barracks"
+Description = "Trains melee units."
 BuildTimeSeconds = 40.0
 MaxHealth = 700.0
 Armor = 2.0
