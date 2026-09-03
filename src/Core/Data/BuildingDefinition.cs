@@ -9,6 +9,12 @@ public partial class BuildingDefinition : EntityDefinition
     /// <summary>Footprint in tiles (X = width, Y = depth).</summary>
     [Export] public Vector2I Footprint { get; set; } = new(2, 2);
 
+    /// <summary>
+    /// Optional construction models ordered from foundation to nearly finished.
+    /// Missing entries fall back to the procedural placeholder.
+    /// </summary>
+    [Export] public PackedScene[] ConstructionStageScenes { get; set; } = System.Array.Empty<PackedScene>();
+
     /// <summary>Raises the owner's population cap by this much.</summary>
     [Export] public int PopulationProvided { get; set; }
 

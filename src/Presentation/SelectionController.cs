@@ -100,7 +100,11 @@ public sealed partial class SelectionController : Node
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } press:
                 // In building placement mode the left click places the site.
-                if (_placement is { IsPlacing: true } && _placement.TryPlace(press.ShiftPressed)) return;
+                if (_placement is { IsPlacing: true })
+                {
+                    _placement.TryPlace(press.ShiftPressed);
+                    return;
+                }
                 BeginDrag(press.Position);
                 break;
 

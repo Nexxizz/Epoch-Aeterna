@@ -19,6 +19,10 @@ obj/
 *.blend1
 *.blend2
 *.blend3
+__pycache__/
+
+# Rendered documentation previews are source images; Godot sidecars for them are not needed.
+docs/previews/*.png.import
 
 # Godot export presets can contain credentials/keystore paths
 export_presets.cfg

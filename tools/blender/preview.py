@@ -3,8 +3,9 @@
     blender --background --python tools/blender/preview.py -- bld_towncenter [out.png] [view]
 
 ``view`` is ``three-quarter`` (default), ``front`` or ``side``. A fourth
-argument of the form ``Clip:frame`` renders one pose of an animation, which is
-how a deformation problem gets diagnosed without starting the game.
+argument of the form ``Clip:frame`` renders one pose of an animation. Building
+generators additionally accept ``stage:0``, ``stage:1``, ``stage:2`` or
+``rubble`` so construction variants can be inspected without changing code.
 
 Builds the asset with its own generator script, frames it with a three-quarter
 camera and renders a PNG. Useful for judging a model without starting the game,
@@ -40,7 +41,7 @@ VIEWS = {
 
 def _arguments():
     if "--" not in sys.argv:
-        return "bld_towncenter", None, "three-quarter", None
+        return "bld_towncenter", None, "three-quarter", None, None
 
     rest = sys.argv[sys.argv.index("--") + 1:]
     name = rest[0] if rest else "bld_towncenter"
@@ -49,11 +50,18 @@ def _arguments():
 
     # Optional "Clip:frame", so a pose can be inspected without starting the game.
     pose = None
-    if len(rest) > 3 and ":" in rest[3]:
-        clip, frame = rest[3].rsplit(":", 1)
-        pose = (clip, int(frame))
+    variant = None
+    if len(rest) > 3:
+        option = rest[3]
+        if option.startswith("stage:"):
+            variant = int(option.split(":", 1)[1])
+        elif option == "rubble":
+            variant = option
+        elif ":" in option:
+            clip, frame = option.rsplit(":", 1)
+            pose = (clip, int(frame))
 
-    return name, output, view, pose
+    return name, output, view, pose, variant
 
 
 def _bounds(objects):
@@ -161,7 +169,7 @@ def _apply_pose(objects, clip: str, frame: int) -> None:
 
 
 def main() -> int:
-    name, output, view, pose = _arguments()
+    name, output, view, pose, variant = _arguments()
 
     try:
         module = importlib.import_module(name)
@@ -169,7 +177,12 @@ def main() -> int:
         print(f"[preview] unknown asset: {name}")
         return 1
 
-    objects = module.build()
+    if variant == "rubble":
+        objects = module.build_rubble()
+    elif variant is not None:
+        objects = module.build(variant)
+    else:
+        objects = module.build()
 
     if pose is not None:
         _apply_pose(objects, *pose)

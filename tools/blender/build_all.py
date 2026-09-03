@@ -34,6 +34,7 @@ for extra in (HERE, os.path.join(HERE, "assets")):
 ASSETS = [
     "res_tree",
     "bld_towncenter",
+    "bld_house",
     "unit_settler",
 ]
 

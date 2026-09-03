@@ -225,6 +225,9 @@ EpochAeterna/
 - [x] Baustellen-Entity: Ressourcen sofort abgezogen, HP wachsen mit dem Fortschritt
 - [x] Mehrere Siedler bauen schneller, mit abnehmendem Ertrag
 - [x] **3 sichtbare Baustufen**, Umschaltung bei 33 % / 66 % / 100 %
+  - Jedes Gebäude kann drei eigene `ConstructionStageScenes` bereitstellen. Der `ViewManager`
+    tauscht Fundament, Rohbau und fast fertiges Modell anhand des Simulationsfortschritts aus;
+    ohne eigene Modelle bleibt der bestehende Platzhalter aktiv.
 - [x] Abriss mit Teilrückerstattung, anteilig zum Baufortschritt
 - [ ] 🟢 Reparatur beschädigter Gebäude
 
@@ -316,7 +319,7 @@ EpochAeterna/
   |---|---|---|
   | Ressourcenvorkommen, Requisiten | 150–800 | Baum 268 |
   | Einheiten | kein starres Limit — visuelle Lesbarkeit hat Vorrang | Siedler 3.830 |
-  | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | 1.500–4.000 | — |
+  | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | Richtwert 1.500–4.000; Lesbarkeit hat Vorrang | Haus 9.032 |
   | Große Gebäude (Rathaus, Kaserne, Schießstand) | 4.000–10.000 | Rathaus 6.734 |
 
   Die Vorkommen sind der eigentliche Posten: Auf einer 128×128-Karte stehen rund 280 davon,
@@ -349,13 +352,15 @@ EpochAeterna/
 
 **Pipeline-Validierung** — Punkt 4 der Umsetzungsreihenfolge ist erledigt:
 
-Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entstehen.
+Vier Assets sind komplett durch die Kette gelaufen; beim Haus außerdem alle Baustufen und das
+Trümmer-Mesh.
 
 | Asset | Dreiecke | Besonderheit |
 |---|---|---|
 | `res_tree` | 268 | Geometrie und Origin-Konvention |
 | `bld_towncenter` | 6.734 | Grundfläche exakt 8 m = 4 Kacheln, vier Materialien, Team-Color-Banner |
 | `unit_settler` | 3.830 | detailliertes Armature-Modell, aufgabenspezifische Ausrüstung, 10 Animationsclips |
+| `bld_house` | 9.032 | drei konsistente Baustufen (824 / 7.156 / 8.572), fertiges Modell und Trümmer-Mesh (1.476) |
 
 ```bash
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py
@@ -363,11 +368,11 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 
 | Prüfung | Ergebnis |
 |---|---|
-| Blender-Build | 3/3 Assets, keine Warnungen |
+| Blender-Build | 4/4 Assets samt Hausvarianten, keine Warnungen |
 | Godot-Import | fehlerfrei |
 | Animationsclips | `Idle`, `Walk`, `Run`, `Carry_Walk`, `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Attack`, `Death` + Skeleton3D bestätigt |
 | Team-Color | Banner und Siedler nehmen die Spielerfarbe an |
-| Selbsttest | 126/126, Exit-Code 0 |
+| Selbsttest | 130/130, Exit-Code 0 |
 
 > Genau die Fehler, die der Plan an dieser Stelle vorhergesagt hat, sind aufgetreten —
 > und zwar an drei Assets statt an sechzehn:
@@ -480,10 +485,11 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
   von Händen, Ellbogen und Werkzeugen lassen sich in Blender direkt ausrechnen — das hat jeden
   der Animationsfehler oben schneller geklärt als jedes weitere Rendern.
 - **Vorschau nutzen, nicht das Spiel starten.** `preview.py` rendert jedes Asset aus drei
-  Blickwinkeln und auf Wunsch eine einzelne Animationspose:
+  Blickwinkeln und auf Wunsch eine einzelne Animationspose oder Gebäudebaustufe:
 
   ```bash
   blender --background --python tools/blender/preview.py -- unit_settler out.png three-quarter "Gather_Chop:13"
+  blender --background --python tools/blender/preview.py -- bld_house out.png three-quarter "stage:1"
   ```
 
   Bei einer Pose mutet das Werkzeug alle übrigen NLA-Tracks. Ohne diese Isolation würden sämtliche
@@ -502,7 +508,7 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 | # | Gebäude | Zeitalter | Funktion | Status |
 |---|---|---|---|---|
 | 1 | **Rathaus** | 1 | Siedler ausbilden, Abgabestelle, Zeitalteraufstieg | [x] Modell [ ] Baustufen [ ] Zeitalter-2-Variante [x] Ingame |
-| 2 | **Haus** | 1 | +10 Bevölkerungslimit | [ ] Modell [ ] Baustufen [ ] Ingame |
+| 2 | **Haus** | 1 | +10 Bevölkerungslimit | [x] Modell [x] Baustufen [x] Ingame |
 | 3 | **Lagerhaus** | 1 | Abgabestelle für Holz / Stein / Gold | [ ] Modell [ ] Baustufen [ ] Ingame |
 | 4 | **Farm** | 1 | Erneuerbare Nahrungsquelle | [ ] Modell [ ] Wachstumsstufen [ ] Ingame |
 | 5 | **Kaserne** | 1 | Nahkampfeinheiten | [ ] Modell [ ] Baustufen [ ] Ingame |
@@ -510,6 +516,10 @@ Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entsteh
 | 7 | **Wachturm** | 2 | Verteidigung, schießt automatisch, große Sichtweite | [ ] Modell [ ] Baustufen [ ] Ingame |
 
 Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footprint.
+
+- [x] Beim ausgewählten Siedler zeigt ein kontextuelles Bau-Menü das fertige Haus als anklickbares
+  Bild. Der Klick startet die eingefärbte Modellvorschau; ein gültiger Linksklick platziert die
+  Baustelle und weist die ausgewählten Siedler direkt als Bauarbeiter zu.
 
 ### 5.2 Einheiten (6)
 

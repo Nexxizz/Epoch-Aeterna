@@ -20,7 +20,7 @@ public sealed partial class BuildPlacementController : Node3D
     private static readonly Color ValidColor = new(0.35f, 0.9f, 0.4f, 0.45f);
     private static readonly Color InvalidColor = new(0.9f, 0.3f, 0.25f, 0.45f);
 
-    private readonly MeshInstance3D _ghost = new();
+    private readonly Node3D _ghost = new();
     private StandardMaterial3D? _material;
 
     private SimulationWorld? _world;
@@ -53,8 +53,6 @@ public sealed partial class BuildPlacementController : Node3D
         };
 
         _ghost.Name = "BuildGhost";
-        _ghost.MaterialOverride = _material;
-        _ghost.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         _ghost.Visible = false;
         AddChild(_ghost);
     }
@@ -72,8 +70,25 @@ public sealed partial class BuildPlacementController : Node3D
 
         _pending = definition;
 
-        float footprint = Mathf.Max(definition.Footprint.X, definition.Footprint.Y) * NavGrid.CellSize * 0.85f;
-        _ghost.Mesh = new BoxMesh { Size = new Vector3(footprint, 3f, footprint) };
+        foreach (Node child in _ghost.GetChildren()) child.QueueFree();
+
+        Node3D preview;
+        if (definition.ModelScene?.Instantiate() is Node3D model)
+        {
+            preview = model;
+        }
+        else
+        {
+            float footprint = Mathf.Max(definition.Footprint.X, definition.Footprint.Y) * NavGrid.CellSize * 0.85f;
+            preview = new MeshInstance3D
+            {
+                Mesh = new BoxMesh { Size = new Vector3(footprint, 3f, footprint) },
+                Position = new Vector3(0f, 1.5f, 0f),
+            };
+        }
+
+        _ghost.AddChild(preview);
+        ApplyGhostMaterial(preview);
         _ghost.Visible = true;
 
         PlacementChanged?.Invoke(_pending);
@@ -106,7 +121,7 @@ public sealed partial class BuildPlacementController : Node3D
                  player.CanAfford(_pending.Cost) &&
                  BuildPlacement.IsValid(_world, _pending, _position, player);
 
-        _ghost.Position = new Vector3(_position.X, _world.Nav.SampleHeight(_position) + 1.5f, _position.Y);
+        _ghost.Position = new Vector3(_position.X, _world.Nav.SampleHeight(_position) + 0.05f, _position.Y);
         if (_material is not null) _material.AlbedoColor = _valid ? ValidColor : InvalidColor;
     }
 
@@ -129,6 +144,17 @@ public sealed partial class BuildPlacementController : Node3D
         // Shift held: place the next one straight away, as one expects from walls.
         if (!keepPlacing) Cancel();
         return true;
+    }
+
+    private void ApplyGhostMaterial(Node node)
+    {
+        if (node is MeshInstance3D mesh)
+        {
+            mesh.MaterialOverride = _material;
+            mesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        }
+
+        foreach (Node child in node.GetChildren()) ApplyGhostMaterial(child);
     }
 }
 

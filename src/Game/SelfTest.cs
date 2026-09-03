@@ -80,6 +80,13 @@ public static class SelfTest
         Check("Settler cost read from .tres", definitions.GetUnit("unit_settler")?.Cost?.Food == 50);
         Check("Town centre knows its trainable units",
             definitions.GetBuilding("bld_towncenter")?.TrainableUnitIds.Length == 2);
+
+        BuildingDefinition? house = definitions.GetBuilding("bld_house");
+        Check("House build-menu image loaded", house?.Icon is not null);
+        Check("House finished model loaded", house?.ModelScene is not null);
+        Check("House has all three construction stage models",
+            house?.ConstructionStageScenes.Length == Building.ConstructionStages &&
+            Array.TrueForAll(house.ConstructionStageScenes, scene => scene is not null));
     }
 
     // --- Phase 2: grid ---------------------------------------------------

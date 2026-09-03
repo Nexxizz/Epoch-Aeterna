@@ -150,10 +150,20 @@ public sealed partial class ViewManager : Node3D
 
     // --- Models ----------------------------------------------------------
 
-    /// <summary>The finished model from the definition, otherwise a placeholder.</summary>
+    /// <summary>The matching construction or finished model, otherwise a placeholder.</summary>
     private Node3D BuildModel(Entity entity)
     {
         EntityDefinition? definition = _world?.Definitions.GetEntity(entity.DefinitionId);
+
+        if (entity is Building { IsUnderConstruction: true } site &&
+            definition is BuildingDefinition buildingDefinition &&
+            site.ConstructionStage < buildingDefinition.ConstructionStageScenes.Length &&
+            buildingDefinition.ConstructionStageScenes[site.ConstructionStage] is { } stageScene &&
+            stageScene.Instantiate() is Node3D stageModel)
+        {
+            ApplyTeamColor(stageModel, entity.OwnerId);
+            return stageModel;
+        }
 
         if (definition?.ModelScene is not null &&
             entity is not Building { IsUnderConstruction: true } &&

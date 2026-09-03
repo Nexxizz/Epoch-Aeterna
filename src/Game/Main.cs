@@ -152,6 +152,10 @@ public partial class Main : Node3D
         _worldRoot.AddChild(overlay);
         overlay.Attach(World, _runner, _selection, _placement, LocalPlayerId);
 
+        var buildMenu = new BuildMenu { Name = "BuildMenu" };
+        _worldRoot.AddChild(buildMenu);
+        buildMenu.Attach(_definitions, _selection, _placement);
+
         var endScreen = new MatchEndScreen { Name = "MatchEndScreen" };
         _worldRoot.AddChild(endScreen);
         endScreen.Attach(World, LocalPlayerId);
