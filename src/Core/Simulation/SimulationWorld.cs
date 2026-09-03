@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using EpochAeterna.Core.Data;
 using EpochAeterna.Core.Entities;
+using EpochAeterna.Core.Pathfinding;
 
 namespace EpochAeterna.Core.Simulation;
 
@@ -18,6 +19,9 @@ public sealed class SimulationWorld
     public const float TickDelta = 1f / TicksPerSecond;
 
     public EntityRegistry Entities { get; } = new();
+
+    /// <summary>Hoehen, Begehbarkeit und Belegung der Karte. Von Sim und Darstellung gemeinsam genutzt.</summary>
+    public NavGrid Nav { get; }
     public DefinitionDatabase Definitions { get; }
     public GameEvents Events { get; } = new();
     public CommandQueue Commands { get; } = new();
@@ -35,9 +39,10 @@ public sealed class SimulationWorld
     public IReadOnlyList<Player> Players => _players;
     public IReadOnlyList<ISimulationSystem> Systems => _systems;
 
-    public SimulationWorld(DefinitionDatabase definitions, ulong seed = 0)
+    public SimulationWorld(DefinitionDatabase definitions, NavGrid nav, ulong seed = 0)
     {
         Definitions = definitions;
+        Nav = nav;
         Random.Seed = seed;
 
         // Registry-Ereignisse auf den oeffentlichen Bus durchreichen, damit Views
@@ -114,6 +119,10 @@ public sealed class SimulationWorld
             Rotation = rotation,
         };
         building.ApplyDefinition(definition);
+
+        // Grundflaeche sperren, damit die Wegfindung das Gebaeude sofort umgeht.
+        Nav.ApplyFootprint(position, building.Footprint, blocked: true);
+
         return Entities.Add(building);
     }
 

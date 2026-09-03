@@ -52,22 +52,36 @@ Screenshot ohne Interaktion aufnehmen (prüft Beleuchtung und Szenenaufbau, CI-t
 "C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --path . -- "--shot=C:/temp/shot.png"
 ```
 
-## Steuerung (Stand Phase 1)
+## Steuerung (Stand Phase 2)
 
-| Taste | Wirkung |
+**Kamera**
+
+| Eingabe | Wirkung |
 |---|---|
-| `1` | Siedler im Rathaus ausbilden |
-| `2` | Späher im Rathaus ausbilden |
-| `Leertaste` | Pause an/aus |
-| `ESC` | Beenden |
+| Pfeiltasten / Bildschirmrand | Karte verschieben |
+| Mittlere Maustaste ziehen | Karte greifen und ziehen |
+| Mausrad | Zoom (die Neigung folgt mit) |
+| `Q` / `E` | Drehen |
+| `Pos1` | Sprung zur eigenen Basis |
 
-Maus-Steuerung, Kamera und Selektion kommen in Phase 2.
+**Einheiten**
 
-Assets nach Änderungen neu importieren:
+| Eingabe | Wirkung |
+|---|---|
+| Linksklick | Einheit auswählen |
+| Linksklick ziehen | Rahmenauswahl |
+| Doppelklick | alle sichtbaren Einheiten desselben Typs |
+| `Shift` + Klick | zur Auswahl hinzufügen / entfernen |
+| Rechtsklick | Bewegungsbefehl |
+| `Shift` + Rechtsklick | Befehl anhängen statt ersetzen |
+| `S` | Stopp |
+| `Strg` + `0`–`9` | Kontrollgruppe setzen |
+| `0`–`9` | Kontrollgruppe abrufen |
 
-```bash
-"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --editor --quit --path .
-```
+**Sonstiges:** `F1` bildet einen Siedler aus, `F2` einen Späher, `Leertaste` pausiert, `ESC` beendet.
+
+> `WASD` ist bewusst nicht belegt: Die Buchstabentasten bleiben für Einheitenbefehle frei
+> (`A` Angriffsbewegung, `S` Stopp, `H` Halten), wie in Empire Earth und AoE.
 
 ## Blender-Assets bauen
 

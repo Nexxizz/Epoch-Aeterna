@@ -1,53 +1,97 @@
 using Godot;
 using EpochAeterna.Core.Entities;
+using EpochAeterna.Core.Pathfinding;
 using EpochAeterna.Core.Simulation;
 
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Bewegt Einheiten auf ihr Ziel zu und dreht sie in Laufrichtung.
+/// Laesst Einheiten ihrem Pfad folgen und dreht sie in Laufrichtung.
 /// </summary>
-/// <remarks>
-/// Bewusst noch geradlinig, ohne Wegfindung und ohne Kollision — Phase 2.4 ersetzt
-/// die Zielbestimmung durch A* mit Pfadglaettung und lokaler Ausweichbewegung.
-/// Die Schnittstelle nach aussen (Order + MoveTarget) bleibt dabei unveraendert.
-/// </remarks>
 public sealed class MovementSystem : ISimulationSystem
 {
-    /// <summary>Ab dieser Naehe zum Ziel gilt die Bewegung als beendet.</summary>
-    private const float ArrivalThreshold = 0.15f;
+    /// <summary>Ab dieser Naehe gilt ein Zwischenpunkt als erreicht.</summary>
+    private const float WaypointThreshold = 0.35f;
 
-    /// <summary>Innerhalb dieser Distanz wird linear abgebremst, damit Einheiten nicht ueberschiessen.</summary>
-    private const float SlowdownDistance = 1.2f;
+    /// <summary>Genauigkeit am Endziel — enger als bei Zwischenpunkten.</summary>
+    private const float ArrivalThreshold = 0.18f;
+
+    /// <summary>Innerhalb dieser Distanz zum Endziel wird abgebremst.</summary>
+    private const float SlowdownDistance = 1.5f;
+
+    private readonly NavGrid _grid;
 
     public string Name => "Movement";
+
+    public MovementSystem(NavGrid grid) => _grid = grid;
 
     public void Tick(SimulationWorld world, float deltaSeconds)
     {
         foreach (Unit unit in world.Entities.Units)
         {
-            if (unit.Order != UnitOrder.Move) continue;
+            if (unit.Order != UnitOrder.Move || unit.NeedsPath) continue;
 
-            Vector2 toTarget = unit.MoveTarget - unit.Position;
-            float distance = toTarget.Length();
-
-            if (distance <= ArrivalThreshold)
+            if (!unit.HasPath)
             {
-                unit.Position = unit.MoveTarget;
-                unit.Stop();
+                FinishOrder(unit);
                 continue;
             }
 
-            Vector2 direction = toTarget / distance;
-
-            float speed = unit.MoveSpeed;
-            if (distance < SlowdownDistance) speed *= distance / SlowdownDistance;
-
-            float step = speed * deltaSeconds;
-            unit.Position += direction * Mathf.Min(step, distance);
-
-            TurnTowards(unit, direction, deltaSeconds);
+            AdvanceAlongPath(unit, deltaSeconds);
         }
+    }
+
+    private void AdvanceAlongPath(Unit unit, float deltaSeconds)
+    {
+        Vector2 waypoint = unit.CurrentWaypoint;
+        bool isFinalWaypoint = unit.PathIndex == unit.Path.Count - 1;
+
+        Vector2 toWaypoint = waypoint - unit.Position;
+        float distance = toWaypoint.Length();
+
+        float threshold = isFinalWaypoint ? ArrivalThreshold : WaypointThreshold;
+        if (distance <= threshold)
+        {
+            unit.PathIndex++;
+            if (!unit.HasPath)
+            {
+                unit.Position = waypoint;
+                FinishOrder(unit);
+            }
+            return;
+        }
+
+        Vector2 direction = toWaypoint / distance;
+
+        float speed = unit.MoveSpeed;
+        if (isFinalWaypoint && distance < SlowdownDistance) speed *= distance / SlowdownDistance;
+
+        // Der Weg wurde einmal geprueft, aber Gebaeude koennen ihn seither versperren.
+        Vector2 next = unit.Position + direction * Mathf.Min(speed * deltaSeconds, distance);
+        Vector2I cell = _grid.WorldToCell(next);
+
+        if (!_grid.IsPassable(cell.X, cell.Y, unit.Clearance))
+        {
+            RequestNewPath(unit);
+            return;
+        }
+
+        unit.Position = next;
+        TurnTowards(unit, direction, deltaSeconds);
+    }
+
+    /// <summary>Endziel erreicht — entweder das naechste Shift-Ziel starten oder anhalten.</summary>
+    private static void FinishOrder(Unit unit)
+    {
+        if (unit.AdvanceToQueuedTarget()) return;
+        unit.Stop();
+    }
+
+    private static void RequestNewPath(Unit unit)
+    {
+        unit.Path.Clear();
+        unit.PathIndex = 0;
+        unit.NeedsPath = true;
     }
 
     /// <summary>Dreht die Einheit begrenzt schnell in die Zielrichtung, statt sie umspringen zu lassen.</summary>
@@ -56,13 +100,10 @@ public sealed class MovementSystem : ISimulationSystem
         // Godot-Konvention: -Z ist "vorne". Die Sim rechnet auf XZ, daher atan2(x, -y).
         float desired = Mathf.Atan2(direction.X, -direction.Y);
         float maxStep = unit.TurnSpeedRadians * deltaSeconds;
-        unit.Rotation = RotateToward(unit.Rotation, desired, maxStep);
-    }
 
-    private static float RotateToward(float current, float target, float maxDelta)
-    {
-        float difference = Mathf.Wrap(target - current, -Mathf.Pi, Mathf.Pi);
-        if (Mathf.Abs(difference) <= maxDelta) return target;
-        return current + Mathf.Sign(difference) * maxDelta;
+        float difference = Mathf.Wrap(desired - unit.Rotation, -Mathf.Pi, Mathf.Pi);
+        unit.Rotation = Mathf.Abs(difference) <= maxStep
+            ? desired
+            : unit.Rotation + Mathf.Sign(difference) * maxStep;
     }
 }

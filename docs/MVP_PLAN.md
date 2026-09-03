@@ -137,41 +137,69 @@ EpochAeterna/
 
 ### 2.1 Terrain & Karte
 
-- [ ] Grid-basierte Karte (MVP: 128×128 Kacheln, 1 Kachel = 2 m)
-- [ ] Terrain-Mesh aus Heightmap, in Chunks (16×16) für Culling
-- [ ] Terrain-Shader: 4-fach Textur-Splatting (Gras / Erde / Fels / Sand), PBR, Triplanar an Steilhängen
-- [ ] Navigations-Grid: pro Kachel begehbar/blockiert, Höhenwert, Belegung durch Gebäude
-- [ ] Statische Deko per `MultiMeshInstance3D` (Bäume, Felsen, Gras) — Performance
-- [ ] Test-Karte "Ebene der Anfänge": 2 Startpositionen, Wald, Steinbruch, Goldader, Beerenbüsche, leichte Hügel
+- [x] Grid-basierte Karte (128×128 Kacheln, 1 Kachel = 2 m) — `NavGrid`, um den Ursprung zentriert
+- [x] Terrain-Mesh aus Heightmap, in Chunks (16×16) für Culling — `TerrainRenderer`, 64 Blöcke
+- [x] Terrain-Shader: 4-fach-Splatting (Gras / Erde / Fels / Sand), PBR, Splat-Gewichte aus Höhe und Steilheit
+  - [ ] Echte Texturen und Triplanar an Steilhängen — die Sampler sind angelegt und auf Weiß vorbelegt, es fehlen nur die Bilddateien (Phase 4/5)
+- [x] Navigations-Grid: begehbar/blockiert als Bitmaske, Höhenwert, Belegung durch Gebäude, Freiraum-Karte
+- [x] Statische Deko per `MultiMeshInstance3D` — ein Draw-Call je Typ statt einem je Objekt
+- [x] Test-Karte „Ebene der Anfänge": seed-basiert, 2 Startplätze auf den flachsten Stellen, Wald und Felsen als echte Hindernisse
+  - [ ] Steinbruch, Goldader und Beerenbüsche als **Ressourcenknoten** — kommen mit Phase 3.1; aktuell nur Deko
 
 ### 2.2 RTS-Kamera
 
-- [ ] WASD- / Pfeiltasten-Pan, Edge-Scrolling, Mittelklick-Drag-Pan
-- [ ] Zoom (Mausrad) mit gekoppelter Neigung (nah = flacher, fern = steiler)
-- [ ] Q/E-Rotation um die Y-Achse
-- [ ] Kamera-Grenzen am Kartenrand, Höhe folgt dem Terrain
-- [ ] Sprung zur Minimap-Position bzw. zum letzten Ereignis (Leertaste)
+- [x] Pan über Pfeiltasten, Edge-Scrolling und Mittelklick-Drag
+- [x] Zoom (Mausrad) mit gekoppelter Neigung — nah 32°, fern 62°
+- [x] Q/E-Rotation um die Y-Achse, Pan dreht mit
+- [x] Kamera-Grenzen am Kartenrand, Drehpunkt folgt der Geländehöhe
+- [x] `JumpTo` für Sprünge; auf **Pos1** gelegt (Sprung zur eigenen Basis)
+  - [ ] Minimap-Klick und Sprung zum letzten Ereignis — brauchen die Minimap aus Phase 6
+
+> **Abweichung:** WASD ist bewusst **nicht** belegt. Der Plan sah WASD-Pan vor, aber
+> Phase 2.3/3.4 brauchen `A` (Angriffsbewegung), `S` (Stopp) und `H` (Halten) als
+> Einheitenbefehle — so machen es Empire Earth und AoE auch. Beides gleichzeitig geht
+> nicht; Kamera auf Pfeiltasten hält die Buchstaben frei.
 
 ### 2.3 Selektion & Befehle
 
-- [ ] Linksklick-Einzelselektion (Raycast auf Kollisionsformen)
-- [ ] Box-Selektion mit Rahmen-Overlay, Priorisierung Militär vor Zivil
-- [ ] Doppelklick = alle sichtbaren Einheiten desselben Typs
-- [ ] Shift = zur Auswahl hinzufügen / entfernen
-- [ ] Kontrollgruppen 0–9 (`Strg+Zahl` setzen, `Zahl` abrufen, Doppeltipp = hinspringen)
-- [ ] Rechtsklick = kontextsensitiver Standardbefehl (Boden → Bewegen, Gegner → Angriff, Ressource → Sammeln, eigene Baustelle → Bauen)
-- [ ] Befehls-Modifier: `A` Angriffsbewegung, `S` Stopp, `H` Halten
-- [ ] Shift-Queue für mehrere Befehle hintereinander
-- [ ] Selektionsring und Ziel-Marker als Feedback am Boden
+- [x] Linksklick-Einzelselektion — Strahl-Kugel-Schnitt, bewusst ohne Physik-Körper
+- [x] Box-Selektion mit Rahmen-Overlay
+  - [ ] Priorisierung Militär vor Zivil — es gibt noch keine Militäreinheiten
+- [x] Doppelklick = alle sichtbaren Einheiten desselben Typs
+- [x] Shift = zur Auswahl hinzufügen / entfernen
+- [x] Kontrollgruppen 0–9 (`Strg+Zahl` setzen, `Zahl` abrufen)
+  - [ ] Doppeltipp = zur Gruppe springen
+- [x] Rechtsklick = Standardbefehl; auf Boden → Bewegen
+  - [ ] Gegner → Angriff, Ressource → Sammeln, Baustelle → Bauen (Phase 3)
+- [x] `S` Stopp
+  - [ ] `A` Angriffsbewegung und `H` Halten — brauchen das Kampfsystem (Phase 3.4)
+- [x] Shift-Queue für mehrere Befehle hintereinander
+- [x] Selektionsring am Boden und Ziel-Marker als Feedback
 
 ### 2.4 Pathfinding
 
-- [ ] A* auf dem Nav-Grid (mit Kachel-Clearance für große Einheiten)
-- [ ] Pfadglättung (String-Pulling / Line-of-Sight-Kürzung)
-- [ ] Lokale Ausweichbewegung zwischen Einheiten (einfaches Steering / Push-Apart)
-- [ ] Gruppenbewegung: Formation-Offsets, gemeinsame Zielgeschwindigkeit
-- [ ] Pfad-Neuberechnung bei blockiertem Weg (z. B. neu gebautes Gebäude), Budget pro Tick (max. N Pfade)
-- [ ] 🟢 Flow-Field für große Gruppen (> 30 Einheiten) — kann nach dem MVP kommen
+- [x] A* auf dem Nav-Grid mit Kachel-Clearance, Oktil-Heuristik, kein Diagonal-Schnitt durch Ecken
+- [x] Pfadglättung per String-Pulling über Supercover-Sichtlinien
+- [x] Lokale Ausweichbewegung — `AvoidanceSystem` löst Überlappungen über ein Raster-Hashing auf
+- [x] Gruppenbewegung: ringförmige Formations-Offsets um das Ziel
+- [x] Pfad-Neuberechnung bei blockiertem Weg, Budget von 8 Suchen pro Tick
+- [ ] 🟢 Flow-Field für große Gruppen (> 30 Einheiten) — nach dem MVP
+
+**Verifikation Phase 2** — der Selbsttest deckt jetzt 61 Prüfungen ab:
+
+```bash
+"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --path . -- --verify
+```
+
+| Prüfung | Ergebnis |
+|---|---|
+| `dotnet build` | 0 Warnungen, 0 Fehler |
+| Selbsttest (61 Prüfungen) | alle bestanden, Exit-Code 0 |
+| Darstellung | Gelände, Wald, Basen und Schatten im Screenshot bestätigt |
+
+> Die Wegfindung wird gegen synthetische Gitter geprüft, nicht gegen die generierte Karte:
+> Wand mit Umweg, vollständig eingemauertes Ziel, Klick auf ein Hindernis. So hängen die
+> Tests nicht davon ab, wie der Zufall die Karte gerade formt.
 
 ---
 

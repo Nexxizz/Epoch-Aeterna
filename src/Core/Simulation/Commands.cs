@@ -4,12 +4,15 @@ using EpochAeterna.Core.Entities;
 
 namespace EpochAeterna.Core.Simulation;
 
-/// <summary>Schickt Einheiten zu einem Punkt. Bis Phase 2.4 auf direktem Weg, danach ueber A*.</summary>
+/// <summary>Schickt Einheiten zu einem Punkt. Der Weg wird vom PathfindingSystem gesucht.</summary>
 public sealed class MoveCommand : ICommand
 {
     public required int PlayerId { get; init; }
     public required EntityId[] Units { get; init; }
     public required Vector2 Target { get; init; }
+
+    /// <summary>Shift-Klick: an den laufenden Befehl anhaengen, statt ihn zu ersetzen.</summary>
+    public bool Queued { get; init; }
 
     public void Execute(SimulationWorld world)
     {
@@ -23,7 +26,11 @@ public sealed class MoveCommand : ICommand
             Unit? unit = world.Entities.GetUnit(id);
             if (unit is null || unit.OwnerId != PlayerId) continue;
 
-            unit.OrderMoveTo(count == 1 ? Target : Target + FormationOffset(placed, unit.Radius));
+            Vector2 target = count == 1 ? Target : Target + FormationOffset(placed, unit.Radius);
+
+            if (Queued) unit.QueueMoveTo(target);
+            else unit.OrderMoveTo(target);
+
             placed++;
         }
     }
