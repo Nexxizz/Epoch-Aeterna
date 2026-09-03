@@ -9,16 +9,16 @@ using EpochAeterna.Core.Systems;
 namespace EpochAeterna.Game;
 
 /// <summary>
-/// Pruefungen fuer Wirtschaft, Bauen, Kampf, Zeitalter, Nebel und Siegbedingung.
+/// Checks for economy, construction, combat, ages, fog and the victory condition.
 /// </summary>
 /// <remarks>
-/// In einer eigenen Datei, weil der Selbsttest sonst unuebersichtlich wird. Die
-/// Pruefungen laufen wie alle anderen ohne SceneTree — auch Kampf und Nebel sind
-/// reine Simulation.
+/// In its own file, because the self-test would otherwise become unreadable. The
+/// checks run without a SceneTree like all the others — combat and fog are
+/// pure simulation too.
 /// </remarks>
 public static class SelfTestPhase3
 {
-    /// <summary>Baut eine frische Partie ohne Nebel — Tests sollen alles sehen.</summary>
+    /// <summary>Builds a fresh match without fog — tests are meant to see everything.</summary>
     private static Match NewMatch(DefinitionDatabase definitions, ulong seed = 4711)
     {
         MatchConfig config = MatchSetup.DefaultSkirmish();
@@ -57,7 +57,7 @@ public static class SelfTestPhase3
         CheckVictory(definitions, check);
     }
 
-    // --- Daten -----------------------------------------------------------
+    // --- Data ------------------------------------------------------------
 
     private static void CheckData(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
@@ -77,8 +77,8 @@ public static class SelfTestPhase3
         check("Archer uses a projectile",
             definitions.GetUnit("unit_archer") is { UsesProjectile: true, DamageType: DamageType.Ranged });
 
-        // Der Fallback besteht nur aus Einsen. Wenn hier etwas anderes steht,
-        // wurde die .tres tatsaechlich geladen — genau das hat vorher gefehlt.
+        // The fallback is nothing but ones. If something else shows up here, the .tres
+        // really was loaded — which is exactly what was missing before.
         check("Counter matrix comes from the .tres, not the fallback",
             !Mathf.IsEqualApprox(definitions.Combat.Get(DamageType.Siege, ArmorClass.Building), 1f));
 
@@ -90,7 +90,7 @@ public static class SelfTestPhase3
             definitions.Combat.Get(DamageType.Ranged, ArmorClass.Building) < 0.6f);
     }
 
-    // --- Wirtschaft ------------------------------------------------------
+    // --- Economy ---------------------------------------------------------
 
     private static void CheckGathering(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
@@ -100,8 +100,8 @@ public static class SelfTestPhase3
 
         check("Resource deposits placed on the map", world.Entities.ResourceNodes.Count > 50);
 
-        // Jede Basis muss alle vier Ressourcen in Reichweite haben, sonst entscheidet
-        // der Zufall die Partie schon vor dem ersten Klick.
+        // Every base must have all four resources within reach, otherwise chance
+        // decides the match before the first click.
         foreach (Vector2 start in match.Map.StartPositions)
         {
             foreach (ResourceType type in ResourceTypes.All)
@@ -124,7 +124,7 @@ public static class SelfTestPhase3
         world.Tick();
         check("Gather command assigned", settler.Order == UnitOrder.Gather);
 
-        // Genug Zeit fuer Hinweg, Abbau und Rueckweg.
+        // Enough time for the trip out, the harvesting and the trip back.
         int nodeAmountBefore = tree.Remaining;
         for (int i = 0; i < 2000 && player.GetResource(ResourceType.Wood) == woodBefore; i++) world.Tick();
 
@@ -134,7 +134,7 @@ public static class SelfTestPhase3
         check("Settler continues gathering", settler.Order == UnitOrder.Gather);
     }
 
-    // --- Bauen -----------------------------------------------------------
+    // --- Construction ----------------------------------------------------
 
     private static void CheckConstruction(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
@@ -173,7 +173,7 @@ public static class SelfTestPhase3
         check("Completion recorded in statistics", player.Stats.BuildingsCompleted == 1);
         check("Settler is idle again", settler.Order == UnitOrder.Idle);
 
-        // Mehrere Siedler bauen schneller, aber nicht linear schneller.
+        // Several settlers build faster, but not linearly faster.
         check("Additional builders contribute less than a linear multiple",
             EffectiveBuildersMonotonic());
 
@@ -184,7 +184,7 @@ public static class SelfTestPhase3
         check("Demolition removes the building", !world.Entities.Exists(site.Id));
         check("Demolition provides a partial refund", player.GetResource(ResourceType.Wood) == woodAfter + 15);
 
-        // Bauplatzpruefung: mitten im eigenen Rathaus darf nichts entstehen.
+        // Placement check: nothing may go up in the middle of your own town centre.
         Building townCenter = FindBuilding(world, player.Id, "bld_towncenter")!;
         check("Building on occupied ground rejected",
             !BuildPlacement.IsValid(world, definitions.GetBuilding("bld_house")!, townCenter.Position, player));
@@ -195,7 +195,7 @@ public static class SelfTestPhase3
 
     private static bool EffectiveBuildersMonotonic()
     {
-        // Spiegelt die Formel des ConstructionSystem: streng wachsend, aber gedaempft.
+        // Mirrors the ConstructionSystem formula: strictly increasing, but damped.
         static float Effective(int count)
         {
             float total = 0f;
@@ -206,7 +206,7 @@ public static class SelfTestPhase3
         return Effective(2) > Effective(1) && Effective(2) < 2f * Effective(1) && Effective(4) < 4f;
     }
 
-    // --- Kampf -----------------------------------------------------------
+    // --- Combat ----------------------------------------------------------
 
     private static void CheckCombat(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
@@ -216,7 +216,7 @@ public static class SelfTestPhase3
         Player attacker = world.Players[0];
         Player defender = world.Players[1];
 
-        // Zwei Kaempfer dicht nebeneinander in die Mitte setzen.
+        // Place two fighters right next to each other in the middle.
         Vector2 arena = world.Nav.CellToWorld(world.Nav.Width / 2, world.Nav.Height / 2);
 
         Unit spearman = world.SpawnUnit("unit_spearman", attacker.Id, arena)!;
@@ -240,7 +240,7 @@ public static class SelfTestPhase3
         check("Kill recorded in statistics", attacker.Stats.EnemiesKilled >= 1);
         check("Loss recorded in statistics", defender.Stats.UnitsLost >= 1);
 
-        // Fernkampf: das Geschoss muss unterwegs sein, bevor es trifft.
+        // Ranged: the projectile has to be in flight before it hits.
         Unit archer = world.SpawnUnit("unit_slinger", attacker.Id, arena)!;
         Unit target = world.SpawnUnit("unit_settler", defender.Id, arena + new Vector2(7f, 0f))!;
         world.FlushSpawns();
@@ -263,7 +263,7 @@ public static class SelfTestPhase3
         for (int i = 0; i < 200 && target.Health >= targetHealth; i++) world.Tick();
         check("Projectile deals damage on impact", target.Health < targetHealth);
 
-        // Konter-Matrix: derselbe Rohschaden wirkt unterschiedlich.
+        // Counter matrix: the same raw damage has different effects.
         Building wall = world.SpawnBuilding("bld_house", defender.Id, arena + new Vector2(20f, 20f))!;
         world.FlushSpawns();
 
@@ -278,7 +278,7 @@ public static class SelfTestPhase3
         check("Siege damage hurts buildings more than ranged damage", siegeDamage > rangedDamage * 2f);
     }
 
-    // --- Zeitalter -------------------------------------------------------
+    // --- Ages ------------------------------------------------------------
 
     private static void CheckAgeAdvance(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
@@ -290,14 +290,14 @@ public static class SelfTestPhase3
 
         check("Match starts in the Stone Age", player.AgeIndex == 0);
 
-        // Ohne zweites Gebaeude fehlt die Voraussetzung.
+        // Without a second building the prerequisite is missing.
         foreach (ResourceType type in ResourceTypes.All) player.SetResource(type, 2000);
 
         world.Commands.Enqueue(new AdvanceAgeCommand { PlayerId = player.Id, Building = townCenter.Id });
         world.Tick();
         check("Advancement rejected without a second building", !townCenter.IsResearchingAge);
 
-        // Zweites Gebaeude fertig hinstellen, dann klappt es.
+        // Put a second, finished building down and it works.
         world.SpawnBuilding("bld_house", player.Id, townCenter.Position + new Vector2(16f, 16f));
         world.FlushSpawns();
 
@@ -315,7 +315,7 @@ public static class SelfTestPhase3
         check("Copper Age reached", player.AgeIndex == 1);
         check("Research completed", !townCenter.IsResearchingAge);
 
-        // Was das Zeitalter voraussetzt, ist jetzt erlaubt — mit Kaserne als Vorbedingung.
+        // What the age requires is now allowed — with barracks as the prerequisite.
         world.SpawnBuilding("bld_barracks", player.Id, townCenter.Position + new Vector2(-16f, 16f));
         world.FlushSpawns();
 
@@ -324,7 +324,7 @@ public static class SelfTestPhase3
             BuildPlacement.IsValid(world, definitions.GetBuilding("bld_range")!, spot, player));
     }
 
-    // --- Nebel -----------------------------------------------------------
+    // --- Fog -------------------------------------------------------------
 
     private static void CheckFog(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
@@ -347,14 +347,14 @@ public static class SelfTestPhase3
         check("Own base is visible", vision.IsVisible(home.X, home.Y));
         check("Enemy base is unexplored", !vision.IsExplored(enemy.X, enemy.Y));
 
-        // Einen Spaeher an die Feindbasis setzen und die Sicht neu aufbauen lassen.
+        // Put a scout at the enemy base and let visibility rebuild.
         world.SpawnUnit("unit_scout", player.Id, match.StartOf(1));
         world.FlushSpawns();
         for (int i = 0; i < VisionSystem.RebuildInterval + 1; i++) world.Tick();
 
         check("Explored area becomes visible", vision.IsVisible(enemy.X, enemy.Y));
 
-        // Spaeher entfernen: das Gebiet bleibt erkundet, ist aber nicht mehr einsehbar.
+        // Remove the scout: the area stays explored but is no longer visible.
         foreach (Unit unit in new List<Unit>(world.Entities.Units))
         {
             if (unit.DefinitionId == "unit_scout") world.Entities.Remove(unit.Id);
@@ -365,7 +365,7 @@ public static class SelfTestPhase3
         check("Abandoned area is no longer visible", !vision.IsVisible(enemy.X, enemy.Y));
     }
 
-    // --- Sieg ------------------------------------------------------------
+    // --- Victory ---------------------------------------------------------
 
     private static void CheckVictory(DefinitionDatabase definitions, System.Action<string, bool> check)
     {
@@ -375,7 +375,7 @@ public static class SelfTestPhase3
 
         check("Match is running at the start", !world.IsOver);
 
-        // Alles des zweiten Spielers entfernen.
+        // Remove everything belonging to the second player.
         foreach (Entity entity in new List<Entity>(world.Entities.All()))
         {
             if (entity.OwnerId == loser.Id) world.Entities.Remove(entity.Id);
@@ -396,7 +396,7 @@ public static class SelfTestPhase3
         return world.CurrentTick == before;
     }
 
-    // --- Hilfsmittel -----------------------------------------------------
+    // --- Helpers ---------------------------------------------------------
 
     private static Vector2 StartOf(this Match match, int index) =>
         match.Map.StartPositions[index % match.Map.StartPositions.Count];
@@ -446,7 +446,7 @@ public static class SelfTestPhase3
         return null;
     }
 
-    /// <summary>Sucht spiralfoermig einen gueltigen Bauplatz um einen Punkt herum.</summary>
+    /// <summary>Searches outwards in a spiral for a valid building site around a point.</summary>
     private static Vector2 FindBuildSpot(SimulationWorld world, Vector2 around,
         BuildingDefinition definition, Player player)
     {

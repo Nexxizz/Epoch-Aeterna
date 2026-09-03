@@ -4,16 +4,16 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Erkennt, wann ein Spieler ausgeschieden ist, und beendet die Partie.
+/// Detects when a player is out and ends the match.
 /// </summary>
 /// <remarks>
-/// Besiegt ist, wer weder Gebaeude noch Siedler hat — reine Militaereinheiten
-/// reichen nicht, weil man damit nichts wieder aufbauen kann. Genau so handhabt es
-/// Empire Earth auch: Eine Armee ohne Basis ist nur noch ein Nachspiel.
+/// Defeated means having neither buildings nor settlers — pure military units are
+/// not enough, because you cannot rebuild with them. Empire Earth handles it the
+/// same way: an army without a base is only an epilogue.
 /// </remarks>
 public sealed class VictorySystem : ISimulationSystem
 {
-    /// <summary>Nur alle paar Ticks pruefen — der Zustand aendert sich selten.</summary>
+    /// <summary>Only checked every few ticks — the state rarely changes.</summary>
     private const int CheckInterval = 10;
 
     public string Name => "Victory";
@@ -58,7 +58,7 @@ public sealed class VictorySystem : ISimulationSystem
         {
             if (player.IsDefeated) continue;
 
-            // Teams zaehlen, nicht Spieler — sonst endet ein 2v2 nie.
+            // Count teams, not players — otherwise a 2v2 would never end.
             if (survivor is null || survivor.TeamId != player.TeamId)
             {
                 remainingTeams++;

@@ -7,22 +7,22 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Draengt sich ueberlappende Einheiten auseinander.
+/// Pushes overlapping units apart.
 /// </summary>
 /// <remarks>
-/// Bewusst kein ausgewachsenes RVO: Fuer die MVP-Truppenstaerken genuegt es, nach der
-/// Bewegung Ueberlappungen aufzuloesen. Das kostet fast nichts, verhindert aber den
-/// haesslichsten Fall — Einheiten, die exakt uebereinander stehen.
+/// Deliberately not full RVO: at MVP army sizes it is enough to resolve overlaps
+/// after movement. That costs almost nothing but prevents the ugliest case —
+/// units standing exactly on top of one another.
 ///
-/// Laeuft nach dem <see cref="MovementSystem"/>, korrigiert also dessen Ergebnis,
-/// statt in die Wegfindung einzugreifen.
+/// Runs after the <see cref="MovementSystem"/> and therefore corrects its result
+/// rather than interfering with pathfinding.
 /// </remarks>
 public sealed class AvoidanceSystem : ISimulationSystem
 {
-    /// <summary>Anteil der Ueberlappung, der pro Tick aufgeloest wird. 1 wuerde schwingen.</summary>
+    /// <summary>Share of the overlap resolved per tick. 1 would oscillate.</summary>
     private const float Relaxation = 0.5f;
 
-    /// <summary>Kantenlaenge einer Hash-Zelle in Metern. Etwa der doppelte Einheitendurchmesser.</summary>
+    /// <summary>Edge length of a hash cell in metres. Roughly twice a unit's diameter.</summary>
     private const float BucketSize = 2f;
 
     private readonly NavGrid _grid;
@@ -53,8 +53,8 @@ public sealed class AvoidanceSystem : ISimulationSystem
 
                 if (distanceSquared >= minDistance * minDistance) continue;
 
-                // Exakt deckungsgleich: deterministisch auseinanderschieben, damit
-                // sich das Ergebnis nicht zwischen Durchlaeufen unterscheidet.
+                // Exactly coincident: push apart deterministically, so the result does not
+                // differ between runs.
                 if (distanceSquared < 0.0001f)
                 {
                     int sign = unit.Id.Value > other.Id.Value ? 1 : -1;
@@ -71,7 +71,7 @@ public sealed class AvoidanceSystem : ISimulationSystem
             Vector2 target = unit.Position + push * Relaxation;
             Vector2I cell = _grid.WorldToCell(target);
 
-            // Niemals in eine gesperrte Kachel schieben — lieber ueberlappen lassen.
+            // Never push into a blocked tile — better to let them overlap.
             if (_grid.IsPassable(cell.X, cell.Y, unit.Clearance)) unit.Position = target;
         }
     }

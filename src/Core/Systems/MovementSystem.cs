@@ -6,23 +6,23 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Laesst Einheiten ihrem Pfad folgen und dreht sie in Laufrichtung.
+/// Makes units follow their path and turns them to face the direction of travel.
 /// </summary>
 /// <remarks>
-/// Zustaendig fuer *jede* Einheit mit einem Pfad, nicht nur fuer reine
-/// Bewegungsbefehle: Ein Siedler auf dem Weg zum Baum und ein Krieger auf dem Weg
-/// zum Gegner laufen genauso. Was bei der Ankunft passiert, entscheidet dagegen das
-/// jeweils zustaendige System — dieses hier hoert am Ziel einfach auf.
+/// Responsible for *every* unit with a path, not only for plain movement orders:
+/// a settler on the way to a tree and a warrior on the way to an enemy walk the same
+/// way. What happens on arrival is decided by whichever system owns the task —
+/// this one simply stops at the destination.
 /// </remarks>
 public sealed class MovementSystem : ISimulationSystem
 {
-    /// <summary>Ab dieser Naehe gilt ein Zwischenpunkt als erreicht.</summary>
+    /// <summary>Within this distance a waypoint counts as reached.</summary>
     private const float WaypointThreshold = 0.35f;
 
-    /// <summary>Genauigkeit am Endziel — enger als bei Zwischenpunkten.</summary>
+    /// <summary>Precision at the final target — tighter than for intermediate waypoints.</summary>
     private const float ArrivalThreshold = 0.18f;
 
-    /// <summary>Innerhalb dieser Distanz zum Endziel wird abgebremst.</summary>
+    /// <summary>Within this distance of the final target the unit decelerates.</summary>
     private const float SlowdownDistance = 1.5f;
 
     private readonly NavGrid _grid;
@@ -39,8 +39,8 @@ public sealed class MovementSystem : ISimulationSystem
 
             if (!unit.HasPath)
             {
-                // Nur ein reiner Laufbefehl endet hier. Sammeln, Bauen und Kaempfen
-                // haben eigene Folgeschritte und werden von ihren Systemen gesteuert.
+                // Only a plain movement order ends here. Gathering, building and fighting
+                // have their own follow-up steps and are driven by their own systems.
                 if (unit.Order is UnitOrder.Move or UnitOrder.AttackMove) FinishOrder(unit);
                 continue;
             }
@@ -74,7 +74,7 @@ public sealed class MovementSystem : ISimulationSystem
         float speed = unit.MoveSpeed;
         if (isFinalWaypoint && distance < SlowdownDistance) speed *= distance / SlowdownDistance;
 
-        // Der Weg wurde einmal geprueft, aber Gebaeude koennen ihn seither versperren.
+        // The route was checked once, but buildings may have blocked it since.
         Vector2 next = unit.Position + direction * Mathf.Min(speed * deltaSeconds, distance);
         Vector2I cell = _grid.WorldToCell(next);
 
@@ -88,7 +88,7 @@ public sealed class MovementSystem : ISimulationSystem
         TurnTowards(unit, direction, deltaSeconds);
     }
 
-    /// <summary>Endziel erreicht — entweder das naechste Shift-Ziel starten oder anhalten.</summary>
+    /// <summary>Destination reached — either start the next Shift target or stop.</summary>
     private static void FinishOrder(Unit unit)
     {
         if (unit.AdvanceToQueuedTarget()) return;
@@ -102,10 +102,10 @@ public sealed class MovementSystem : ISimulationSystem
         unit.NeedsPath = true;
     }
 
-    /// <summary>Dreht die Einheit begrenzt schnell in die Zielrichtung, statt sie umspringen zu lassen.</summary>
+    /// <summary>Turns the unit towards its heading at a limited rate, rather than snapping.</summary>
     private static void TurnTowards(Unit unit, Vector2 direction, float deltaSeconds)
     {
-        // Godot-Konvention: -Z ist "vorne". Die Sim rechnet auf XZ, daher atan2(x, -y).
+        // Godot convention: -Z is "forward". The sim works on XZ, hence atan2(x, -y).
         float desired = Mathf.Atan2(direction.X, -direction.Y);
         float maxStep = unit.TurnSpeedRadians * deltaSeconds;
 

@@ -5,19 +5,19 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Zielsuche, Anlaufen und Zuschlagen — fuer Einheiten wie fuer Verteidigungsgebaeude.
+/// Target selection, closing in and striking — for units as much as for defensive buildings.
 /// </summary>
 /// <remarks>
-/// Die Haltung entscheidet, wie weit eine Einheit von sich aus geht: Aggressiv
-/// verfolgt, Defensiv wehrt sich und kehrt zurueck, Halten bleibt stehen. Ohne diese
-/// Unterscheidung laufen Truppen einzeln hinter Spaehern her und loesen sich auf.
+/// The stance decides how far a unit goes on its own: Aggressive pursues,
+/// Defensive fights back and returns, Hold stands still. Without that distinction
+/// troops chase scouts one by one and dissolve.
 /// </remarks>
 public sealed class CombatSystem : ISimulationSystem
 {
-    /// <summary>Wie weit eine defensive Einheit sich vom Wachposten entfernt, in Metern.</summary>
+    /// <summary>How far a defensive unit strays from its guard post, in metres.</summary>
     private const float DefensiveLeash = 8f;
 
-    /// <summary>Zusatzreichweite, damit Einheiten nicht am Rand der Reichweite pendeln.</summary>
+    /// <summary>Extra reach so units do not oscillate at the edge of their range.</summary>
     private const float RangeTolerance = 0.35f;
 
     public string Name => "Combat";
@@ -28,7 +28,7 @@ public sealed class CombatSystem : ISimulationSystem
         foreach (Building building in world.Entities.Buildings) TickBuilding(world, building, deltaSeconds);
     }
 
-    // --- Einheiten -------------------------------------------------------
+    // --- Units -----------------------------------------------------------
 
     private static void TickUnit(SimulationWorld world, Unit unit, float deltaSeconds)
     {
@@ -38,7 +38,7 @@ public sealed class CombatSystem : ISimulationSystem
 
         Entity? target = world.Entities.Get(unit.AttackTarget);
 
-        // Ziel weg oder tot: je nach Auftrag neu suchen oder aufhoeren.
+        // Target gone or dead: search again or stop, depending on the order.
         if (target is null || !target.IsAlive || target.OwnerId == unit.OwnerId)
         {
             unit.AttackTarget = EntityId.None;
@@ -62,7 +62,7 @@ public sealed class CombatSystem : ISimulationSystem
             return;
         }
 
-        // In Reichweite: stehen bleiben und zuschlagen.
+        // In range: stop and strike.
         unit.ClearPath();
         FaceTarget(unit, target.Position);
 
@@ -82,7 +82,7 @@ public sealed class CombatSystem : ISimulationSystem
             return;
         }
 
-        // Defensive Einheiten laufen nicht beliebig weit hinterher.
+        // Defensive units do not pursue indefinitely.
         if (unit.Stance == Stance.Defensive && unit.Order != UnitOrder.Attack &&
             target.Position.DistanceTo(unit.GuardPosition) > DefensiveLeash)
         {
@@ -107,13 +107,13 @@ public sealed class CombatSystem : ISimulationSystem
         if (unit.Position.DistanceTo(unit.GuardPosition) > 1.5f) unit.StartMoveTo(unit.GuardPosition);
     }
 
-    /// <summary>Nur untaetige, angreifende oder patrouillierende Einheiten suchen selbst nach Zielen.</summary>
+    /// <summary>Only idle, attacking or attack-moving units look for targets themselves.</summary>
     private static bool ShouldLookForTargets(Unit unit) =>
         unit.AutoEngages &&
         unit.Stance != Stance.HoldPosition &&
         unit.Order is UnitOrder.Idle or UnitOrder.AttackMove or UnitOrder.Attack;
 
-    /// <summary>Naechstes feindliches Ziel im Sichtradius.</summary>
+    /// <summary>Nearest enemy target within sight range.</summary>
     private static bool TryAcquire(SimulationWorld world, Unit unit)
     {
         float range = unit.Stance == Stance.HoldPosition ? unit.AttackRange : unit.VisionRange;
@@ -125,7 +125,7 @@ public sealed class CombatSystem : ISimulationSystem
         return true;
     }
 
-    // --- Gebaeude --------------------------------------------------------
+    // --- Buildings -------------------------------------------------------
 
     private static void TickBuilding(SimulationWorld world, Building building, float deltaSeconds)
     {
@@ -161,7 +161,7 @@ public sealed class CombatSystem : ISimulationSystem
         });
     }
 
-    // --- Gemeinsames -----------------------------------------------------
+    // --- Shared ----------------------------------------------------------
 
     private static void LaunchProjectile(SimulationWorld world, Unit unit, Entity target)
     {
@@ -198,8 +198,8 @@ public sealed class CombatSystem : ISimulationSystem
             best = candidate;
         }
 
-        // Gebaeude nur, wenn keine Einheit in Reichweite ist — sonst schlagen
-        // Truppen auf Mauern ein, waehrend sie beschossen werden.
+        // Buildings only when no unit is in range — otherwise troops hammer on walls
+        // while being shot at.
         if (best is not null) return best;
 
         foreach (Building candidate in world.Entities.Buildings)
@@ -236,7 +236,7 @@ public sealed class CombatSystem : ISimulationSystem
         Vector2 delta = target - unit.Position;
         if (delta.LengthSquared() < 0.0001f) return;
 
-        // Godot-Konvention: -Z ist "vorne". Die Sim rechnet auf XZ, daher atan2(x, -y).
+        // Godot convention: -Z is "forward". The sim works on XZ, hence atan2(x, -y).
         unit.Rotation = Mathf.Atan2(delta.X, -delta.Y);
     }
 }

@@ -5,12 +5,12 @@ using EpochAeterna.Core.Entities;
 namespace EpochAeterna.Core.Simulation;
 
 /// <summary>
-/// Einbahn-Meldeweg der Simulation an alles ausserhalb: Views, HUD, VFX, Audio, KI.
+/// One-way reporting channel from the simulation to everything outside: views, HUD, VFX, audio, AI.
 /// </summary>
 /// <remarks>
-/// Die Richtung ist strikt Sim → Aussenwelt. Wer die Simulation aendern will, schickt
-/// einen Befehl durch die <see cref="CommandQueue"/>. Damit bleibt die Sim autark
-/// und spaeter deterministisch reproduzierbar.
+/// The direction is strictly sim to outside world. Anything that wants to change the
+/// simulation sends a command through the <see cref="CommandQueue"/>. That keeps the sim
+/// self-contained and, later, deterministically reproducible.
 /// </remarks>
 public sealed class GameEvents
 {
@@ -21,12 +21,12 @@ public sealed class GameEvents
     public event Action<Building, string>? ProductionQueued;
     public event Action<Building, Unit>? ProductionCompleted;
 
-    /// <summary>Eine Baustelle hat eine neue sichtbare Stufe erreicht.</summary>
+    /// <summary>A construction site reached a new visible stage.</summary>
     public event Action<Building>? ConstructionStageChanged;
 
     public event Action<Building>? ConstructionCompleted;
 
-    /// <summary>Ein Siedler hat abgeliefert — Grundlage fuer den aufsteigenden Zahlentext.</summary>
+    /// <summary>A settler delivered — the basis for the rising number text.</summary>
     public event Action<Unit, ResourceType, int>? ResourceDelivered;
 
     public event Action<Player, AgeDefinition>? AgeAdvanced;

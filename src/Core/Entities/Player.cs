@@ -3,10 +3,10 @@ using EpochAeterna.Core.Data;
 
 namespace EpochAeterna.Core.Entities;
 
-/// <summary>Ein Spieler — menschlich oder KI. Haelt Konto, Zeitalter und Bevoelkerung.</summary>
+/// <summary>A player — human or AI. Holds the account, the age and the population.</summary>
 public sealed class Player
 {
-    /// <summary>Hartes Limit, unabhaengig von der Zahl der Haeuser.</summary>
+    /// <summary>Hard limit, regardless of how many houses stand.</summary>
     public const int HardPopulationCap = 200;
 
     public required int Id { get; init; }
@@ -15,28 +15,28 @@ public sealed class Player
     public int TeamId { get; init; }
     public bool IsHuman { get; init; }
 
-    /// <summary>Aktuelles Zeitalter als Index in die Zeitalterkette. 0 = Steinzeit.</summary>
+    /// <summary>Current age as an index into the age chain. 0 = Stone Age.</summary>
     public int AgeIndex { get; private set; }
 
     public bool IsDefeated { get; set; }
 
-    /// <summary>Bilanz der Partie — gesammelt, gebaut, getoetet, verloren.</summary>
+    /// <summary>Match record — gathered, built, killed, lost.</summary>
     public MatchStats Stats { get; } = new();
 
-    /// <summary>Sichtbarkeit der Karte aus Sicht dieses Spielers.</summary>
+    /// <summary>Map visibility from this player's point of view.</summary>
     public Map.VisionGrid? Vision { get; set; }
 
     private readonly int[] _resources = new int[ResourceTypes.Count];
 
-    /// <summary>Belegte Bevoelkerung — Summe der Bevoelkerungskosten aller lebenden Einheiten.</summary>
+    /// <summary>Population in use — the sum of the population cost of every living unit.</summary>
     public int Population { get; private set; }
 
-    /// <summary>Von Haeusern und Rathaus bereitgestelltes Limit, gedeckelt auf <see cref="HardPopulationCap"/>.</summary>
+    /// <summary>Cap provided by houses and the town centre, clamped to <see cref="HardPopulationCap"/>.</summary>
     public int PopulationCap { get; private set; }
 
     public int FreePopulation => PopulationCap - Population;
 
-    // Events, damit HUD und KI nicht pollen muessen.
+    // Events, so the HUD and the AI do not have to poll.
     public event System.Action<Player, ResourceType, int>? ResourceChanged;
     public event System.Action<Player>? PopulationChanged;
     public event System.Action<Player, int>? AgeAdvanced;
@@ -74,7 +74,7 @@ public sealed class Player
         return true;
     }
 
-    /// <summary>Bucht die Kosten ab, sofern sie vollstaendig gedeckt sind. Alles-oder-nichts.</summary>
+    /// <summary>Deducts the cost if it is fully covered. All or nothing.</summary>
     public bool TrySpend(ResourceSet? cost)
     {
         if (!CanAfford(cost)) return false;
@@ -91,8 +91,8 @@ public sealed class Player
     }
 
     /// <summary>
-    /// Rechnet Bevoelkerung und Limit aus dem tatsaechlichen Entity-Bestand neu aus.
-    /// Bewusst abgeleitet statt inkrementell gefuehrt — so kann der Zaehler nicht driften.
+    /// Recomputes population and cap from the actual entity population.
+    /// Derived rather than tracked incrementally — that way the counter cannot drift.
     /// </summary>
     public void RecalculatePopulation(EntityRegistry registry)
     {
@@ -105,7 +105,7 @@ public sealed class Player
         int cap = 0;
         foreach (Building building in registry.Buildings)
         {
-            // Eine Baustelle beherbergt noch niemanden.
+            // A construction site houses nobody yet.
             if (building.OwnerId == Id && !building.IsUnderConstruction) cap += building.PopulationProvided;
         }
         cap = Mathf.Min(cap, HardPopulationCap);

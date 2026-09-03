@@ -1,17 +1,17 @@
 namespace EpochAeterna.Core.Simulation;
 
 /// <summary>
-/// Ein Befehl an die Simulation. Der einzige Weg, sie von aussen zu veraendern —
-/// fuer den menschlichen Spieler wie fuer die KI.
+/// A command to the simulation. The only way to change it from outside —
+/// for the human player as much as for the AI.
 /// </summary>
 /// <remarks>
-/// Diese Enge ist Absicht: Wenn jede Zustandsaenderung durch eine serialisierbare
-/// Befehlsliste laeuft, sind Lockstep-Multiplayer, Replays und Savegames spaeter
-/// Erweiterungen statt Umbauten.
+/// This narrowness is deliberate: when every state change goes through a serialisable
+/// list of commands, lockstep multiplayer, replays and save games become extensions
+/// later on rather than rewrites.
 /// </remarks>
 public interface ICommand
 {
-    /// <summary>Wer den Befehl gibt. Die Ausfuehrung prueft damit Besitzverhaeltnisse.</summary>
+    /// <summary>Who issues the command. Execution uses it to check ownership.</summary>
     int PlayerId { get; }
 
     void Execute(SimulationWorld world);

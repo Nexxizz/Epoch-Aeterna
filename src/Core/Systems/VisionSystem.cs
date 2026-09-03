@@ -5,22 +5,22 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Baut den Nebel des Krieges pro Spieler neu auf.
+/// Rebuilds the fog of war for every player.
 /// </summary>
 /// <remarks>
-/// Nicht jeden Tick, sondern alle paar Ticks: Sichtbarkeit aendert sich langsamer als
-/// Positionen, und ein voller Neuaufbau ueber 16.384 Kacheln waere 20 Mal pro Sekunde
-/// pure Verschwendung. Bei fuenf Aktualisierungen je Sekunde sieht man keinen
-/// Unterschied, aber die Tick-Zeit halbiert sich.
+/// Not every tick but every few: visibility changes more slowly than positions, and
+/// a full rebuild over 16,384 tiles twenty times a second would be pure waste. At
+/// five updates per second there is no visible difference, but the tick time
+/// halves.
 /// </remarks>
 public sealed class VisionSystem : ISimulationSystem
 {
-    /// <summary>Neuaufbau alle N Ticks. Bei 20 Hz sind das fuenf Aktualisierungen pro Sekunde.</summary>
+    /// <summary>Rebuild every N ticks. At 20 Hz that is five updates per second.</summary>
     public const int RebuildInterval = 4;
 
     public string Name => "Vision";
 
-    /// <summary>Abschaltbar fuer Tests und Debug — dann sieht jeder alles.</summary>
+    /// <summary>Can be turned off for tests and debugging — then everyone sees everything.</summary>
     public bool Enabled { get; set; } = true;
 
     public void Tick(SimulationWorld world, float deltaSeconds)
@@ -49,7 +49,7 @@ public sealed class VisionSystem : ISimulationSystem
         }
     }
 
-    /// <summary>Deckt fuer alle Spieler die ganze Karte auf.</summary>
+    /// <summary>Reveals the whole map for every player.</summary>
     public void RevealAll(SimulationWorld world)
     {
         Enabled = false;

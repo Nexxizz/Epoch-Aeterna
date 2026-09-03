@@ -2,38 +2,38 @@ using Godot;
 
 namespace EpochAeterna.Core.Pathfinding;
 
-/// <summary>Warum eine Kachel gesperrt ist. Als Bitmaske, damit Quellen unabhaengig gesetzt werden.</summary>
+/// <summary>Why a tile is blocked. A bitmask, so sources can be set independently.</summary>
 [System.Flags]
 public enum BlockFlags : byte
 {
     None = 0,
 
-    /// <summary>Zu steiles Gelaende — aendert sich waehrend der Partie nicht.</summary>
+    /// <summary>Terrain too steep — does not change during the match.</summary>
     Terrain = 1 << 0,
 
-    /// <summary>Baum, Fels, Busch.</summary>
+    /// <summary>Tree, rock, bush.</summary>
     Decoration = 1 << 1,
 
-    /// <summary>Gebaeude. Wird beim Bau gesetzt und beim Abriss geloescht.</summary>
+    /// <summary>A building. Set when built, cleared when demolished.</summary>
     Building = 1 << 2,
 }
 
 /// <summary>
-/// Das Navigationsgitter: Hoehen, Begehbarkeit und Belegung der Karte.
+/// The navigation grid: heights, walkability and occupancy of the map.
 /// </summary>
 /// <remarks>
-/// Bewusst eine gemeinsame Struktur fuer Simulation und Darstellung — der Terrain-Mesh
-/// wird aus denselben Hoehen gebaut, aus denen die Wegfindung rechnet. Damit koennen
-/// Optik und Begehbarkeit nicht auseinanderlaufen.
+/// Deliberately one shared structure for simulation and display — the terrain mesh
+/// is built from the same heights the pathfinding computes on. That way looks and
+/// walkability cannot drift apart.
 ///
-/// Kachelkoordinaten laufen von (0,0) bis (Width-1, Height-1); die Weltkoordinaten sind
-/// um den Ursprung zentriert, damit die Karte symmetrisch um (0,0) liegt.
+/// Tile coordinates run from (0,0) to (Width-1, Height-1); world coordinates are
+/// centred on the origin, so the map is symmetric around (0,0).
 /// </remarks>
 public sealed class NavGrid
 {
     public const float CellSize = 2f;
 
-    /// <summary>Obergrenze der Freiraumberechnung. Groessere Werte braucht keine Einheit.</summary>
+    /// <summary>Upper bound of the clearance computation. No unit needs a larger value.</summary>
     private const byte MaxClearance = 8;
 
     public int Width { get; }
@@ -42,7 +42,7 @@ public sealed class NavGrid
     private readonly BlockFlags[] _blocked;
     private readonly byte[] _clearance;
 
-    /// <summary>Hoehen an den Kachel-Ecken, daher (Width+1) x (Height+1) Werte.</summary>
+    /// <summary>Heights at the tile corners, hence (Width+1) x (Height+1) values.</summary>
     private readonly float[] _cornerHeights;
 
     private bool _clearanceDirty = true;
@@ -59,7 +59,7 @@ public sealed class NavGrid
         _cornerHeights = new float[(width + 1) * (height + 1)];
     }
 
-    // --- Koordinaten -----------------------------------------------------
+    // --- Coordinates -----------------------------------------------------
 
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;
 
@@ -75,7 +75,7 @@ public sealed class NavGrid
         Mathf.Clamp(cell.X, 0, Width - 1),
         Mathf.Clamp(cell.Y, 0, Height - 1));
 
-    // --- Hoehen ----------------------------------------------------------
+    // --- Heights ---------------------------------------------------------
 
     public float GetCornerHeight(int x, int y) =>
         _cornerHeights[Mathf.Clamp(y, 0, Height) * (Width + 1) + Mathf.Clamp(x, 0, Width)];
@@ -86,7 +86,7 @@ public sealed class NavGrid
         _cornerHeights[y * (Width + 1) + x] = value;
     }
 
-    /// <summary>Bilinear interpolierte Gelaendehoehe an einem beliebigen Weltpunkt.</summary>
+    /// <summary>Bilinearly interpolated terrain height at any world point.</summary>
     public float SampleHeight(Vector2 world)
     {
         float gx = (world.X + WorldWidth * 0.5f) / CellSize;
@@ -105,7 +105,7 @@ public sealed class NavGrid
         return Mathf.Lerp(top, bottom, ty);
     }
 
-    /// <summary>Groesster Hoehenunterschied innerhalb einer Kachel — Mass fuer die Steilheit.</summary>
+    /// <summary>Largest height difference within a tile — the measure of steepness.</summary>
     public float CellSlope(int x, int y)
     {
         float a = GetCornerHeight(x, y);
@@ -118,7 +118,7 @@ public sealed class NavGrid
         return max - min;
     }
 
-    // --- Begehbarkeit ----------------------------------------------------
+    // --- Walkability -----------------------------------------------------
 
     public BlockFlags GetFlags(int x, int y) => InBounds(x, y) ? _blocked[y * Width + x] : BlockFlags.Terrain;
 
@@ -138,7 +138,7 @@ public sealed class NavGrid
         _clearanceDirty = true;
     }
 
-    /// <summary>Setzt oder loescht die Grundflaeche eines Gebaeudes, zentriert auf dessen Position.</summary>
+    /// <summary>Sets or clears a building's footprint, centred on its position.</summary>
     public void ApplyFootprint(Vector2 center, Vector2I footprint, bool blocked)
     {
         Vector2I origin = WorldToCell(center);
@@ -155,11 +155,11 @@ public sealed class NavGrid
         }
     }
 
-    // --- Freiraum --------------------------------------------------------
+    // --- Clearance -------------------------------------------------------
 
     /// <summary>
-    /// Abstand zur naechsten gesperrten Kachel, in Kacheln. Eine Einheit, die
-    /// <c>n</c> Kacheln breit ist, darf nur ueber Kacheln mit Clearance >= n laufen.
+    /// Distance to the nearest blocked tile, in tiles. A unit that is <c>n</c> tiles
+    /// wide may only walk over tiles whose clearance is >= n.
     /// </summary>
     public byte GetClearance(int x, int y)
     {
@@ -172,8 +172,8 @@ public sealed class NavGrid
         IsWalkable(x, y) && GetClearance(x, y) >= requiredClearance;
 
     /// <summary>
-    /// Mehrquellen-Breitensuche von allen gesperrten Kacheln aus. Kostet einen
-    /// Durchlauf ueber die Karte und laeuft nur, wenn sich wirklich etwas geaendert hat.
+    /// Multi-source breadth-first search from every blocked tile. Costs one pass over
+    /// the map and only runs when something actually changed.
     /// </summary>
     private void RebuildClearance()
     {
@@ -194,7 +194,7 @@ public sealed class NavGrid
             }
         }
 
-        // Kartenrand zaehlt als gesperrt, sonst laufen Einheiten in die Kante.
+        // The map edge counts as blocked, otherwise units walk into the border.
         for (int x = 0; x < Width; x++)
         {
             EnqueueBorder(queue, x, 0);
@@ -241,7 +241,7 @@ public sealed class NavGrid
         queue.Enqueue(index);
     }
 
-    /// <summary>Naechstgelegene begehbare Kachel um ein Ziel herum — fuer Klicks auf Hindernisse.</summary>
+    /// <summary>Nearest walkable tile around a target — for clicks that land on obstacles.</summary>
     public Vector2I FindNearestPassable(Vector2I start, int requiredClearance, int maxRadius = 24)
     {
         if (IsPassable(start.X, start.Y, requiredClearance)) return start;
@@ -252,7 +252,7 @@ public sealed class NavGrid
             {
                 for (int dx = -radius; dx <= radius; dx++)
                 {
-                    // Nur den Ring dieses Radius pruefen, nicht die Flaeche.
+                    // Only check the ring at this radius, not the whole area.
                     if (Mathf.Abs(dx) != radius && Mathf.Abs(dy) != radius) continue;
 
                     int x = start.X + dx;

@@ -4,14 +4,14 @@ using EpochAeterna.Core.Pathfinding;
 
 namespace EpochAeterna.Core.Map;
 
-/// <summary>Kleines Beiwerk ohne Spielwirkung — Grasbueschel, lose Steine.</summary>
+/// <summary>Small clutter with no effect on play — grass tufts, loose stones.</summary>
 public enum DecorationType
 {
     GrassTuft,
     Pebble,
 }
 
-/// <summary>Ein Streuobjekt. Blockiert nichts und laesst sich nicht abbauen.</summary>
+/// <summary>A scattered object. Blocks nothing and cannot be harvested.</summary>
 public readonly struct Decoration
 {
     public required DecorationType Type { get; init; }
@@ -20,7 +20,7 @@ public readonly struct Decoration
     public required float Scale { get; init; }
 }
 
-/// <summary>Ein Platz, an dem beim Matchaufbau ein Ressourcenvorkommen entsteht.</summary>
+/// <summary>A spot where a resource deposit is created during match setup.</summary>
 public readonly struct ResourceSpot
 {
     public required string DefinitionId { get; init; }
@@ -29,7 +29,7 @@ public readonly struct ResourceSpot
     public required float Scale { get; init; }
 }
 
-/// <summary>Ergebnis der Kartenerzeugung: Gitter, Vorkommen, Beiwerk und Startplaetze.</summary>
+/// <summary>Result of map generation: grid, deposits, clutter and starting positions.</summary>
 public sealed class GeneratedMap
 {
     public required NavGrid Grid { get; init; }

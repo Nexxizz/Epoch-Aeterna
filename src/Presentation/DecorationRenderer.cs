@@ -6,12 +6,12 @@ using EpochAeterna.Core.Pathfinding;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Zeichnet Grasbueschel und lose Steine als <see cref="MultiMeshInstance3D"/>.
+/// Draws grass tufts and loose stones as a <see cref="MultiMeshInstance3D"/>.
 /// </summary>
 /// <remarks>
-/// Beiwerk ohne Spielwirkung — deshalb keine Entities. Eine Karte traegt einige
-/// tausend davon; als einzelne Nodes waere das ebenso viele Draw-Calls, als MultiMesh
-/// ist es einer pro Typ.
+/// Clutter with no effect on play — hence not entities. A map carries a few thousand
+/// of them; as individual nodes that would be as many draw calls, as a MultiMesh it
+/// is one per type.
 /// </remarks>
 public sealed partial class DecorationRenderer : Node3D
 {
@@ -19,7 +19,7 @@ public sealed partial class DecorationRenderer : Node3D
 
     private readonly System.Collections.Generic.List<ShaderMaterial> _materials = new();
 
-    /// <summary>Alle Beiwerk-Materialien. Der Nebel des Krieges haengt seine Textur hier ein.</summary>
+    /// <summary>All clutter materials. The fog of war hooks its texture in here.</summary>
     public System.Collections.Generic.IReadOnlyList<ShaderMaterial> Materials => _materials;
 
     public void Build(IReadOnlyList<Decoration> decorations, NavGrid grid)
@@ -55,8 +55,8 @@ public sealed partial class DecorationRenderer : Node3D
 
             var basis = Basis.FromEuler(new Vector3(0f, item.Rotation, 0f)).Scaled(Vector3.One * item.Scale);
 
-            // Godots Grundkoerper sitzen mittig auf ihrem Ursprung, das Gelaende ist
-            // aber die Standflaeche — daher um die halbe Hoehe anheben.
+            // Godot's primitives sit centred on their origin, but the terrain is the
+            // standing surface — so lift them by half their height.
             float lift = GroundOffset(type) * item.Scale;
 
             multiMesh.SetInstanceTransform(i, new Transform3D(basis,
@@ -81,7 +81,7 @@ public sealed partial class DecorationRenderer : Node3D
         _ => 0.08f,
     };
 
-    /// <summary>Platzhaltergeometrie bis Phase 5.</summary>
+    /// <summary>Placeholder geometry until real models exist.</summary>
     private static Mesh BuildMesh(DecorationType type) => type switch
     {
         DecorationType.GrassTuft => new PrismMesh { Size = new Vector3(0.5f, 0.45f, 0.06f) },

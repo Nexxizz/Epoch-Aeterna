@@ -7,13 +7,13 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Der Bauplatzierungs-Modus: ein Geistermodell folgt dem Cursor und faerbt sich
-/// gruen oder rot, je nachdem ob dort gebaut werden darf.
+/// The building placement mode: a ghost model follows the cursor and turns green
+/// or red depending on whether building there is allowed.
 /// </summary>
 /// <remarks>
-/// Die Gueltigkeitspruefung ruft dieselbe Methode auf wie der Befehl selbst
-/// (<see cref="BuildPlacement.IsValid"/>). Damit kann die Vorschau nicht luegen —
-/// was gruen leuchtet, wird auch tatsaechlich gebaut.
+/// The validity check calls the very same method the command does
+/// (<see cref="BuildPlacement.IsValid"/>). That way the preview cannot lie —
+/// whatever glows green really does get built.
 /// </remarks>
 public sealed partial class BuildPlacementController : Node3D
 {
@@ -34,7 +34,7 @@ public sealed partial class BuildPlacementController : Node3D
 
     public bool IsPlacing => _pending is not null;
 
-    /// <summary>Gefeuert, wenn der Modus beginnt oder endet — das HUD zeigt daraufhin einen Hinweis.</summary>
+    /// <summary>Raised when the mode starts or ends — the HUD shows a hint accordingly.</summary>
     public event System.Action<BuildingDefinition?>? PlacementChanged;
 
     public void Attach(SimulationWorld world, RtsCamera camera, SelectionController selection, int localPlayerId)
@@ -59,7 +59,7 @@ public sealed partial class BuildPlacementController : Node3D
         AddChild(_ghost);
     }
 
-    /// <summary>Startet den Platzierungsmodus fuer ein Gebaeude.</summary>
+    /// <summary>Starts placement mode for a building.</summary>
     public void Begin(string buildingDefinitionId)
     {
         BuildingDefinition? definition = _world?.Definitions.GetBuilding(buildingDefinitionId);
@@ -67,7 +67,7 @@ public sealed partial class BuildPlacementController : Node3D
 
         if (definition is null || player is null) return;
 
-        // Was das Zeitalter noch nicht hergibt, laesst sich gar nicht erst anfassen.
+        // What the age does not offer yet cannot even be picked up.
         if (player.AgeIndex < definition.RequiredAgeIndex) return;
 
         _pending = definition;
@@ -97,7 +97,7 @@ public sealed partial class BuildPlacementController : Node3D
             return;
         }
 
-        // Auf das Kachelraster einrasten, damit Gebaeude buendig nebeneinander stehen.
+        // Snap to the tile grid so buildings stand flush beside one another.
         Vector2I cell = _world.Nav.ClampCell(_world.Nav.WorldToCell(target));
         _position = _world.Nav.CellToWorld(cell.X, cell.Y);
 
@@ -111,8 +111,8 @@ public sealed partial class BuildPlacementController : Node3D
     }
 
     /// <summary>
-    /// Setzt die Baustelle. Gibt false zurueck, wenn der Klick nichts bewirkt hat —
-    /// der Aufrufer laesst ihn dann als normalen Klick durch.
+    /// Places the construction site. Returns false when the click did nothing —
+    /// the caller then lets it through as an ordinary click.
     /// </summary>
     public bool TryPlace(bool keepPlacing)
     {
@@ -126,13 +126,13 @@ public sealed partial class BuildPlacementController : Node3D
             Builders = _selection?.SelectedBuilders() ?? System.Array.Empty<EntityId>(),
         });
 
-        // Shift gedrueckt: gleich das naechste setzen, wie man es von Mauern kennt.
+        // Shift held: place the next one straight away, as one expects from walls.
         if (!keepPlacing) Cancel();
         return true;
     }
 }
 
-/// <summary>Schnittpunkt des Mausstrahls mit dem Gelaende. Von Auswahl und Bauvorschau genutzt.</summary>
+/// <summary>Intersection of the mouse ray with the terrain. Used by selection and build preview.</summary>
 public static class GroundPicker
 {
     public static bool TryPick(NavGrid grid, Camera3D camera, Vector2 screenPosition, out Vector2 target)
@@ -144,9 +144,9 @@ public static class GroundPicker
 
         if (Mathf.Abs(direction.Y) < 0.0001f) return false;
 
-        // Erster Schaetzwert: Schnitt mit der Ebene y=0. Danach ein paar Schritte
-        // Nachfuehrung auf die tatsaechliche Gelaendehoehe. Konvergiert bei den
-        // flachen Hoehen dieser Karte in wenigen Durchlaeufen.
+        // First estimate: intersection with the plane y=0. Then a few steps of
+        // correction onto the actual terrain height. Converges within a few passes
+        // at the gentle heights of this map.
         float distance = -origin.Y / direction.Y;
         if (distance <= 0f) return false;
 

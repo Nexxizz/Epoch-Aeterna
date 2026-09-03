@@ -6,12 +6,12 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Arbeitet die Ausbildungswarteschlangen der Gebaeude ab und setzt fertige Einheiten
-/// auf die Karte.
+/// Works through the training queues of buildings and places finished units
+/// on the map.
 /// </summary>
 /// <remarks>
-/// Phase 3.3 erweitert das um Fortschrittsanzeige im HUD und Sammelpunkt-Feinheiten;
-/// die Mechanik selbst — Warteschlange, Bevoelkerungsblockade, Sammelpunkt — steht hier.
+/// Phase 3.3 adds the progress display in the HUD and rally point refinements;
+/// the mechanics themselves — queue, population stall, rally point — live here.
 /// </remarks>
 public sealed class ProductionSystem : ISimulationSystem
 {
@@ -21,7 +21,7 @@ public sealed class ProductionSystem : ISimulationSystem
     {
         foreach (Building building in world.Entities.Buildings)
         {
-            // Eine Baustelle bildet noch niemanden aus.
+            // A construction site trains nobody yet.
             if (building.IsUnderConstruction) continue;
 
             ProductionOrder? order = building.CurrentOrder;
@@ -38,8 +38,8 @@ public sealed class ProductionSystem : ISimulationSystem
                 continue;
             }
 
-            // Volle Bevoelkerung haelt die Warteschlange an, statt sie zu leeren:
-            // Der Spieler baut ein Haus, die Produktion laeuft von selbst weiter.
+            // A full population stalls the queue instead of clearing it:
+            // the player builds a house and production carries on by itself.
             if (order.IsComplete && !player.HasPopulationSpace(definition.PopulationCost)) continue;
 
             if (!order.IsComplete)
@@ -61,7 +61,7 @@ public sealed class ProductionSystem : ISimulationSystem
         Unit? unit = world.SpawnUnit(definition.Id, building.OwnerId, spawn);
         if (unit is null) return;
 
-        // Zum Sammelpunkt schicken, sonst am Gebaeude stehen lassen.
+        // Send to the rally point, otherwise leave them beside the building.
         if (building.RallyPoint is { } rally) unit.OrderMoveTo(rally);
 
         Player? owner = world.GetPlayer(building.OwnerId);

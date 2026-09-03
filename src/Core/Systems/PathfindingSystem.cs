@@ -7,23 +7,23 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Arbeitet offene Wegeanfragen ab — mit festem Budget pro Tick.
+/// Works through open path requests — with a fixed budget per tick.
 /// </summary>
 /// <remarks>
-/// Das Budget ist der Grund, warum dieses System existiert, statt die Suche direkt
-/// im Befehl auszufuehren: Wenn fuenfzig Einheiten gleichzeitig einen Befehl bekommen,
-/// wuerde das den Tick sprengen. Stattdessen laufen sie in den ersten Ticks
+/// The budget is the reason this system exists instead of running the search
+/// directly in the command: if fifty units receive an order at once, that would
+/// blow the tick. Instead they set off staggered over the first few ticks,
 /// gestaffelt los, was optisch ohnehin natuerlicher wirkt.
 /// </remarks>
 public sealed class PathfindingSystem : ISimulationSystem
 {
-    /// <summary>Wegesuchen pro Tick. Bei 20 Hz also bis zu 160 Pfade pro Sekunde.</summary>
+    /// <summary>Path searches per tick. At 20 Hz that is up to 160 paths per second.</summary>
     public int RequestsPerTick { get; set; } = 8;
 
     private readonly AStarPathfinder _pathfinder;
     private readonly List<Vector2> _scratch = new();
 
-    /// <summary>Anfragen des letzten Ticks, fuers Profiling-Overlay.</summary>
+    /// <summary>Requests from the last tick, for the profiling overlay.</summary>
     public int LastProcessed { get; private set; }
 
     public int PendingRequests { get; private set; }
@@ -55,8 +55,8 @@ public sealed class PathfindingSystem : ISimulationSystem
             }
             else
             {
-                // Unerreichbar: Befehl fallen lassen, statt die Einheit endlos
-                // neu suchen zu lassen.
+                // Unreachable: drop the order rather than letting the unit search forever
+                // search forever.
                 unit.Stop();
             }
         }

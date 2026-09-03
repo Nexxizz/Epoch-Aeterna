@@ -8,39 +8,39 @@ using EpochAeterna.Core.Pathfinding;
 namespace EpochAeterna.Core.Simulation;
 
 /// <summary>
-/// Der gesamte Spielzustand und seine Fortschreibung. Enthaelt keinerlei Godot-Nodes:
-/// Die Welt laesst sich headless ticken, was Tests, KI-Simulation und spaeter
-/// deterministische Wiederholbarkeit ermoeglicht.
+/// The entire game state and how it advances. Contains no Godot nodes at all:
+/// the world can be ticked headlessly, which is what makes tests, AI simulation and,
+/// later, deterministic repeatability possible.
 /// </summary>
 public sealed class SimulationWorld
 {
-    /// <summary>Feste Simulationsrate. Bewusst niedriger als die Bildrate — die Views interpolieren.</summary>
+    /// <summary>Fixed simulation rate. Deliberately below the frame rate — the views interpolate.</summary>
     public const int TicksPerSecond = 20;
 
     public const float TickDelta = 1f / TicksPerSecond;
 
     public EntityRegistry Entities { get; } = new();
 
-    /// <summary>Hoehen, Begehbarkeit und Belegung der Karte. Von Sim und Darstellung gemeinsam genutzt.</summary>
+    /// <summary>Heights, walkability and occupancy of the map. Shared by sim and display.</summary>
     public NavGrid Nav { get; }
 
     public DefinitionDatabase Definitions { get; }
     public GameEvents Events { get; } = new();
     public CommandQueue Commands { get; } = new();
 
-    /// <summary>Konter-Matrix. Aus den Daten geladen, mit spielbarem Fallback.</summary>
+    /// <summary>Counter matrix. Loaded from the data, with a playable fallback.</summary>
     public CombatTable Combat { get; set; } = new();
 
-    /// <summary>Fliegende Geschosse. Bewusst keine Entities — siehe <see cref="Projectile"/>.</summary>
+    /// <summary>Projectiles in flight. Deliberately not entities — see <see cref="Projectile"/>.</summary>
     public List<Projectile> Projectiles { get; } = new();
 
-    /// <summary>Gesaater Zufall — nie System.Random verwenden, sonst bricht die Reproduzierbarkeit.</summary>
+    /// <summary>Seeded randomness — never use System.Random, or reproducibility breaks.</summary>
     public RandomNumberGenerator Random { get; } = new();
 
     public int CurrentTick { get; private set; }
     public float ElapsedSeconds => CurrentTick * TickDelta;
 
-    /// <summary>Gesetzt, sobald die Partie entschieden ist. Null, solange sie laeuft.</summary>
+    /// <summary>Set once the match is decided. Null while it is still running.</summary>
     public Player? Winner { get; set; }
 
     public bool IsOver { get; set; }
@@ -58,8 +58,8 @@ public sealed class SimulationWorld
         Nav = nav;
         Random.Seed = seed;
 
-        // Registry-Ereignisse auf den oeffentlichen Bus durchreichen, damit Views
-        // nur eine Stelle abonnieren muessen.
+        // Forward registry events onto the public bus, so views only have to
+        // subscribe in one place.
         Entities.EntityAdded += entity => Events.RaiseEntitySpawned(entity);
         Entities.EntityRemoved += OnEntityRemoved;
     }
@@ -84,35 +84,35 @@ public sealed class SimulationWorld
         return null;
     }
 
-    /// <summary>Ein Simulationsschritt. Immer <see cref="TickDelta"/> lang, unabhaengig von der Bildrate.</summary>
+    /// <summary>One simulation step. Always <see cref="TickDelta"/> long, regardless of frame rate.</summary>
     public void Tick()
     {
         if (IsOver) return;
 
-        // 1. Zustand vor dem Tick sichern — die Views blenden spaeter dazwischen.
+        // 1. Capture the pre-tick state — the views blend between the two afterwards.
         Entities.CaptureInterpolationSnapshots();
 
-        // 2. Befehle des vergangenen Frames anwenden.
+        // 2. Apply the commands from the past frame.
         Commands.ExecutePending(this);
 
-        // 3. Systemlogik.
+        // 3. System logic.
         foreach (ISimulationSystem system in _systems) system.Tick(this, TickDelta);
 
-        // 4. Spawns und Tode uebernehmen, dann abgeleitete Werte auffrischen.
+        // 4. Commit spawns and deaths, then refresh derived values.
         Entities.Flush();
         foreach (Player player in _players) player.RecalculatePopulation(Entities);
 
         CurrentTick++;
     }
 
-    // --- Schaden ---------------------------------------------------------
+    // --- Damage ----------------------------------------------------------
 
     /// <summary>
-    /// Bringt Schaden an und toetet die Entity, wenn sie dabei auf null faellt.
+    /// Applies damage and kills the entity if that takes it to zero.
     /// </summary>
     /// <remarks>
-    /// Einziger Weg, Lebenspunkte zu senken. Damit gibt es genau eine Stelle, an der
-    /// Ruestung, Konter-Matrix, Statistik und Todesmeldung zusammenlaufen.
+    /// The only way to lower health. That gives exactly one place where armour,
+    /// counter matrix, statistics and the death notification come together.
     /// </remarks>
     public void ApplyDamage(Entity target, float rawDamage, DamageType damageType, int attackerPlayerId)
     {
@@ -122,8 +122,8 @@ public sealed class SimulationWorld
 
         float multiplier = Combat.Get(damageType, armorClass);
 
-        // Ruestung zieht ab, der Konter multipliziert. Mindestens 1 Schaden, damit
-        // hohe Ruestung nicht zu voelliger Unverwundbarkeit fuehrt.
+        // Armour subtracts, the counter multiplies. At least 1 damage, so that heavy
+        // armour does not amount to complete invulnerability.
         float damage = Mathf.Max(1f, (rawDamage - armor) * multiplier);
 
         target.Health -= damage;
@@ -158,7 +158,7 @@ public sealed class SimulationWorld
         Entities.Remove(target.Id);
     }
 
-    /// <summary>Raeumt die Kachelsperre auf, wenn ein Gebaeude oder Vorkommen verschwindet.</summary>
+    /// <summary>Clears the tile block when a building or deposit disappears.</summary>
     private void OnEntityRemoved(Entity entity)
     {
         switch (entity)
@@ -218,7 +218,7 @@ public sealed class SimulationWorld
         building.ApplyDefinition(definition);
         if (underConstruction) building.BeginConstruction();
 
-        // Grundflaeche sperren, damit die Wegfindung das Gebaeude sofort umgeht.
+        // Block the footprint so pathfinding routes around the building immediately.
         Nav.ApplyFootprint(position, building.Footprint, blocked: true);
 
         return Entities.Add(building);
@@ -252,8 +252,8 @@ public sealed class SimulationWorld
     }
 
     /// <summary>
-    /// Uebernimmt gepufferte Spawns sofort, statt bis zum Tick-Ende zu warten.
-    /// Nur fuer den Matchaufbau vor dem ersten Tick gedacht.
+    /// Commits buffered spawns immediately instead of waiting for the end of the tick.
+    /// Intended for match setup, before the first tick.
     /// </summary>
     public void FlushSpawns()
     {

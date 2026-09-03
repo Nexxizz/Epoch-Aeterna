@@ -2,7 +2,7 @@ using Godot;
 
 namespace EpochAeterna.Presentation;
 
-/// <summary>Der Auswahlrahmen, den man beim Ziehen mit der linken Maustaste sieht.</summary>
+/// <summary>The selection rectangle you see while dragging with the left mouse button.</summary>
 public sealed partial class SelectionBox : CanvasLayer
 {
     private static readonly Color FillColor = new(0.35f, 0.75f, 1f, 0.14f);
@@ -26,7 +26,7 @@ public sealed partial class SelectionBox : CanvasLayer
 
     public new void Hide() => _rectangle.Visible = false;
 
-    /// <summary>Zeichnet Fuellung und Rahmen. Eigener Node, damit <c>_Draw</c> zur Verfuegung steht.</summary>
+    /// <summary>Draws fill and border. Its own node, so that <c>_Draw</c> is available.</summary>
     private sealed partial class Rectangle : Control
     {
         public Rect2 Area { get; set; }

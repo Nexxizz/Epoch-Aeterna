@@ -4,18 +4,18 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Bindeglied zwischen Godots variabler Bildrate und dem festen Simulationstakt.
+/// The link between Godot's variable frame rate and the fixed simulation tick.
 /// </summary>
 /// <remarks>
-/// Sammelt die verstrichene Zeit und ruft <see cref="SimulationWorld.Tick"/> so oft auf,
-/// wie ganze Zeitschritte hineinpassen. Der Rest bleibt als <see cref="InterpolationAlpha"/>
-/// stehen, mit dem die Views zwischen dem vorigen und dem aktuellen Zustand blenden.
+/// Accumulates elapsed time and calls <see cref="SimulationWorld.Tick"/> as often as
+/// whole time steps fit into it. The remainder stays as <see cref="InterpolationAlpha"/>,
+/// which the views use to blend between the previous and the current state.
 /// </remarks>
 public sealed partial class SimulationRunner : Node
 {
     /// <summary>
-    /// Obergrenze der Ticks pro Frame. Verhindert die Todesspirale, wenn ein Frame
-    /// einbricht (Alt-Tab, Ladehaenger) und der Rueckstand immer weiter waechst.
+    /// Cap on ticks per frame. Prevents the death spiral when a frame stalls
+    /// (alt-tab, a loading hitch) and the backlog keeps growing.
     /// </summary>
     private const int MaxTicksPerFrame = 5;
 
@@ -23,15 +23,15 @@ public sealed partial class SimulationRunner : Node
 
     public SimulationWorld? World { get; private set; }
 
-    /// <summary>0 = Zustand vor dem letzten Tick, 1 = danach.</summary>
+    /// <summary>0 = state before the last tick, 1 = after it.</summary>
     public float InterpolationAlpha { get; private set; }
 
-    /// <summary>0 = pausiert, 1 = normal, 2 = doppelte Geschwindigkeit (Phase 3.7).</summary>
+    /// <summary>0 = paused, 1 = normal, 2 = double speed.</summary>
     public float TimeScale { get; set; } = 1f;
 
     public bool IsPaused => TimeScale <= 0f;
 
-    /// <summary>Ticks im letzten Frame — fuers Profiling-Overlay (Phase 8).</summary>
+    /// <summary>Ticks in the last frame — for the profiling overlay.</summary>
     public int LastFrameTickCount { get; private set; }
 
     public void Attach(SimulationWorld world)
@@ -59,8 +59,8 @@ public sealed partial class SimulationRunner : Node
             ticks++;
         }
 
-        // Rueckstand verwerfen, statt ihn vor sich herzuschieben: lieber ein
-        // einmaliger Zeitsprung als dauerhaft ruckelnde Aufholjagd.
+        // Discard the backlog rather than pushing it along: better a single jump in
+        // time than a permanently stuttering catch-up.
         if (ticks >= MaxTicksPerFrame) _accumulator = 0f;
 
         LastFrameTickCount = ticks;

@@ -4,12 +4,12 @@ using Godot;
 namespace EpochAeterna.Core.Data;
 
 /// <summary>
-/// Laedt alle Definitions-Resources aus <c>res://data/</c> und macht sie ueber ihre
-/// String-ID zugaenglich.
+/// Loads every definition resource from <c>res://data/</c> and exposes them by their
+/// string id.
 /// </summary>
 /// <remarks>
-/// Kernstueck des data-driven Ansatzes: eine neue Einheit oder ein neues Gebaeude
-/// braucht nur eine .tres in diesem Ordner — kein C#-Code, keine Registrierung.
+/// The heart of the data-driven approach: a new unit or a new building only needs a
+/// .tres in this folder — no C# code, no registration.
 /// </remarks>
 public sealed class DefinitionDatabase
 {
@@ -26,7 +26,7 @@ public sealed class DefinitionDatabase
     public IReadOnlyList<AgeDefinition> Ages => _agesByIndex;
     public IReadOnlyDictionary<string, ResourceNodeDefinition> ResourceNodes => _resourceNodes;
 
-    /// <summary>Konter-Matrix. Bleibt beim Standard, wenn keine .tres gefunden wurde.</summary>
+    /// <summary>Counter matrix. Stays at the default when no .tres was found.</summary>
     public CombatTable Combat { get; private set; } = new();
 
     public int HighestAgeIndex => _agesByIndex.Count - 1;
@@ -68,7 +68,7 @@ public sealed class DefinitionDatabase
                 continue;
             }
 
-            // Im exportierten Build heissen Resources "<name>.tres.remap".
+            // In an exported build resources are named "<name>.tres.remap".
             if (name.EndsWith(".remap")) full = full[..^".remap".Length];
             else if (!name.EndsWith(".tres")) continue;
 
@@ -132,7 +132,7 @@ public sealed class DefinitionDatabase
     public AgeDefinition? GetAge(int index) =>
         index >= 0 && index < _agesByIndex.Count ? _agesByIndex[index] : null;
 
-    /// <summary>Definition beliebigen Typs — fuer Code, der Einheit und Gebaeude gleich behandelt.</summary>
+    /// <summary>Definition of any type — for code that treats units and buildings alike.</summary>
     public EntityDefinition? GetEntity(string id)
     {
         if (_units.TryGetValue(id, out UnitDefinition? unit)) return unit;

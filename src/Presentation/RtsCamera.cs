@@ -4,14 +4,14 @@ using EpochAeterna.Core.Pathfinding;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Klassische RTS-Kamera: ein Drehpunkt auf dem Boden, die Kamera haengt im Abstand daran.
+/// Classic RTS camera: a pivot on the ground, with the camera hanging off it at a distance.
 /// </summary>
 /// <remarks>
-/// Der Drehpunkt ist der Blickpunkt auf der Karte, nicht die Kameraposition. Dadurch
-/// bleiben Zoom und Rotation intuitiv — man dreht sich um das, was man ansieht.
+/// The pivot is the point being looked at on the map, not the camera position. That
+/// keeps zoom and rotation intuitive — you rotate around what you are looking at.
 ///
-/// Die Neigung ist an den Zoom gekoppelt: nah am Boden flacher (man sieht die Gebaeude
-/// von der Seite), weit weg steiler (man sieht die Lage von oben).
+/// The tilt is coupled to the zoom: flatter near the ground (you see buildings
+/// from the side), steeper further out (you see the situation from above).
 /// </remarks>
 public sealed partial class RtsCamera : Node3D
 {
@@ -24,10 +24,10 @@ public sealed partial class RtsCamera : Node3D
     private const float RotateSpeed = 1.8f;
     private const float ZoomStep = 5.5f;
 
-    /// <summary>Wie schnell Zoom und Position dem Sollwert folgen. Hoeher = direkter.</summary>
+    /// <summary>How quickly zoom and position follow their target. Higher = more direct.</summary>
     private const float Smoothing = 12f;
 
-    /// <summary>Randbreite in Pixeln, in der Edge-Scrolling ausloest.</summary>
+    /// <summary>Border width in pixels that triggers edge scrolling.</summary>
     private const int EdgeMargin = 6;
 
     private readonly Camera3D _camera = new();
@@ -41,12 +41,12 @@ public sealed partial class RtsCamera : Node3D
 
     private bool _dragging;
 
-    /// <summary>Edge-Scrolling stoert beim Entwickeln mit Fenstermodus — abschaltbar.</summary>
+    /// <summary>Edge scrolling gets in the way when developing in windowed mode — switchable.</summary>
     public bool EdgeScrollEnabled { get; set; } = true;
 
     public Camera3D Camera => _camera;
 
-    /// <summary>Blickpunkt auf der XZ-Ebene.</summary>
+    /// <summary>The point being looked at on the XZ plane.</summary>
     public Vector2 Focus => _focus;
 
     public override void _Ready()
@@ -63,7 +63,7 @@ public sealed partial class RtsCamera : Node3D
         UpdateTransform(snap: true);
     }
 
-    /// <summary>Springt sofort an eine Stelle — fuer Minimap-Klicks und Ereignis-Sprünge.</summary>
+    /// <summary>Jumps somewhere at once — for minimap clicks and event jumps.</summary>
     public void JumpTo(Vector2 position)
     {
         _focus = position;
@@ -83,8 +83,8 @@ public sealed partial class RtsCamera : Node3D
                 break;
 
             case InputEventMouseMotion motion when _dragging:
-                // Weltbewegung gegen die Mausbewegung, damit sich die Karte
-                // unter dem Cursor mitzieht.
+                // World movement against mouse movement, so the map drags along
+                // underneath the cursor.
                 Vector2 delta = -motion.Relative * _distance * 0.0016f;
                 _focus += Rotate(delta, _yaw);
                 break;
@@ -116,7 +116,7 @@ public sealed partial class RtsCamera : Node3D
         Vector2 pan = ReadPanInput();
         if (pan != Vector2.Zero)
         {
-            // Panning skaliert mit der Zoomstufe: weit draussen legt man mehr Strecke zurueck.
+            // Panning scales with zoom level: far out you cover more ground.
             float scale = Mathf.Lerp(0.55f, 1.4f, Mathf.InverseLerp(MinDistance, MaxDistance, _distance));
             _focus += Rotate(pan.Normalized() * PanSpeed * scale * dt, _yaw);
         }
@@ -169,7 +169,7 @@ public sealed partial class RtsCamera : Node3D
         Position = new Vector3(_focus.X, groundHeight, _focus.Y);
         Rotation = new Vector3(0f, _yaw, 0f);
 
-        // Nah = flach, fern = steil.
+        // Near = flat, far = steep.
         float zoom = Mathf.InverseLerp(MinDistance, MaxDistance, _distance);
         float pitch = Mathf.DegToRad(Mathf.Lerp(MinPitchDegrees, MaxPitchDegrees, zoom));
 

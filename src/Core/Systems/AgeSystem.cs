@@ -6,13 +6,13 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Laesst laufende Zeitalter-Forschungen ablaufen und stuft den Spieler danach hoch.
+/// Runs down age research in progress and promotes the player once it completes.
 /// </summary>
 /// <remarks>
-/// Der Aufstieg schaltet nichts direkt frei — er erhoeht nur den Zeitalterindex des
-/// Spielers. Ob eine Einheit oder ein Gebaeude verfuegbar ist, entscheidet deren
-/// eigene <c>RequiredAgeIndex</c> in der .tres. Damit kostet ein neues Zeitalter
-/// keinen einzigen Codeeingriff.
+/// Advancing unlocks nothing directly — it only raises the player's age index.
+/// Whether a unit or a building is available is decided by its own
+/// <c>RequiredAgeIndex</c> in the .tres. A new age therefore costs
+/// not a single change to the code.
 /// </remarks>
 public sealed class AgeSystem : ISimulationSystem
 {
@@ -44,8 +44,8 @@ public sealed class AgeSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Pauschaler Zuwachs auf Lebenspunkte beim Aufstieg. Bewusst schlicht gehalten;
-    /// echte Verbesserungen kommen mit dem Technologiebaum.
+    /// A flat health increase on advancing. Deliberately kept plain;
+    /// real upgrades come with the technology tree.
     /// </summary>
     private static void ApplyAgeBonus(SimulationWorld world, Player player)
     {

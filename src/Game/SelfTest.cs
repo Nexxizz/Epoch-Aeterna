@@ -10,12 +10,12 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Game;
 
 /// <summary>
-/// Headless-Durchlauf der Simulation ohne SceneTree, Views oder Eingaben.
+/// Headless run of the simulation, without SceneTree, views or input.
 /// </summary>
 /// <remarks>
-/// Belegt, dass die Sim wirklich autark ist: Wenn sie ohne Godot-Nodes laufen kann,
-/// ist die Trennung zwischen Simulation und Darstellung tatsaechlich sauber und nicht
-/// nur so benannt. Aufruf:
+/// Proof that the sim really is self-contained: if it can run without Godot nodes,
+/// the separation between simulation and display is genuine rather than merely
+/// named that way. Invocation:
 /// <c>Godot_console.exe --headless --path . -- --verify</c>
 /// </remarks>
 public static class SelfTest
@@ -82,7 +82,7 @@ public static class SelfTest
             definitions.GetBuilding("bld_towncenter")?.TrainableUnitIds.Length == 2);
     }
 
-    // --- Phase 2: Gitter -------------------------------------------------
+    // --- Phase 2: grid ---------------------------------------------------
 
     private static void CheckNavGrid()
     {
@@ -109,7 +109,7 @@ public static class SelfTest
 
         Check("Slope detects the height jump", grid.CellSlope(3, 3) > 5f);
 
-        // Freiraum: direkt neben einer Sperre ist er kleiner als mitten im Freien.
+        // Clearance: right beside a block it is smaller than out in the open.
         grid.Block(16, 16, BlockFlags.Building);
         Check("Clearance decreases near obstacles",
             grid.GetClearance(17, 16) < grid.GetClearance(16, 24));
@@ -118,7 +118,7 @@ public static class SelfTest
             grid.FindNearestPassable(new Vector2I(16, 16), 1) != new Vector2I(16, 16));
     }
 
-    // --- Phase 2: Wegfindung ---------------------------------------------
+    // --- Phase 2: pathfinding --------------------------------------------
 
     private static void CheckPathfinding()
     {
@@ -132,14 +132,14 @@ public static class SelfTest
         Check("Path across open ground found", pathfinder.TryFindPath(from, to, 1, path));
         Check("Open path is smoothed to few waypoints", path.Count <= 3);
 
-        // Wand mit Luecke: der Weg muss den Umweg nehmen, aber existieren.
+        // A wall with a gap: the path has to take the detour, but must exist.
         for (int y = 5; y < 35; y++) grid.Block(20, y, BlockFlags.Decoration);
 
         Check("Path around the wall found", pathfinder.TryFindPath(from, to, 1, path));
         Check("Detour needs more waypoints than the open path", path.Count > 2);
         Check("No waypoint lies inside the wall", NoWaypointInsideWall(grid, path));
 
-        // Ziel vollstaendig einmauern: jetzt darf es keinen Weg mehr geben.
+        // Wall the target in completely: now there must be no path at all.
         var sealedGrid = new NavGrid(40, 40);
         var sealedFinder = new AStarPathfinder(sealedGrid);
         for (int i = 28; i <= 32; i++)
@@ -153,7 +153,7 @@ public static class SelfTest
         Check("Unreachable target yields no path",
             !sealedFinder.TryFindPath(sealedGrid.CellToWorld(5, 5), sealedGrid.CellToWorld(30, 30), 1, path));
 
-        // Klick auf ein Hindernis: das Ziel wird auf den naechsten freien Platz gezogen.
+        // Clicking an obstacle: the target is pulled to the nearest free spot.
         var nudgeGrid = new NavGrid(40, 40);
         var nudgeFinder = new AStarPathfinder(nudgeGrid);
         nudgeGrid.Block(30, 30, BlockFlags.Building);
@@ -172,7 +172,7 @@ public static class SelfTest
         return true;
     }
 
-    // --- Phase 2: Karte --------------------------------------------------
+    // --- Phase 2: map ----------------------------------------------------
 
     private static void CheckMapGeneration()
     {
@@ -191,7 +191,7 @@ public static class SelfTest
             Check($"Starting position {cell} is walkable", map.Grid.IsWalkable(cell.X, cell.Y));
         }
 
-        // Gleicher Seed, gleiche Karte — Voraussetzung fuer reproduzierbare Tests.
+        // Same seed, same map — the precondition for reproducible tests.
         GeneratedMap again = MapGenerator.Generate(12345);
         Check("Same seed generates the same map",
             again.ResourceSpots.Count == map.ResourceSpots.Count &&
@@ -219,7 +219,7 @@ public static class SelfTest
         Check("Population cap provided by town centre", player.PopulationCap == 5);
         Check("Starting resources granted", player.GetResource(ResourceType.Food) == 250);
 
-        // Das Rathaus muss im Gitter als belegt eingetragen sein.
+        // The town centre has to be marked as occupied in the grid.
         Building townCenter = FindTownCenter(world, player.Id);
         Vector2I cell = world.Nav.WorldToCell(townCenter.Position);
         Check("Building blocks its footprint", !world.Nav.IsWalkable(cell.X, cell.Y));
@@ -239,7 +239,7 @@ public static class SelfTest
         Player player = world.Players[0];
         Building townCenter = FindTownCenter(world, player.Id);
 
-        // Erst Platz schaffen, sonst blockiert das Bevoelkerungslimit die Fertigstellung.
+        // Make room first, otherwise the population cap blocks completion.
         Vector2 housePosition = townCenter.Position + new Vector2(14f, 14f);
         world.SpawnBuilding("bld_house", player.Id, housePosition);
         world.FlushSpawns();
@@ -269,13 +269,13 @@ public static class SelfTest
         Check("Population increased", player.Population == 5);
     }
 
-    // --- Bewegung --------------------------------------------------------
+    // --- Movement --------------------------------------------------------
 
     private static void CheckMovement(SimulationWorld world)
     {
         Unit unit = world.Entities.Units[0];
 
-        // Ziel auf eine garantiert freie Kachel in der Naehe legen.
+        // Put the target on a tile nearby that is guaranteed to be free.
         Vector2I startCell = world.Nav.WorldToCell(unit.Position);
         Vector2 target = ToWorld(world, startCell + new Vector2I(5, 0), unit.Clearance);
 
@@ -337,14 +337,14 @@ public static class SelfTest
         return world.Nav.CellToWorld(passable.X, passable.Y);
     }
 
-    // --- Grenzfaelle -----------------------------------------------------
+    // --- Edge cases ------------------------------------------------------
 
     private static void CheckPopulationCap(SimulationWorld world, DefinitionDatabase definitions)
     {
         Player player = world.Players[1];
         Building townCenter = FindTownCenter(world, player.Id);
 
-        // Limit ist 5, belegt sind 4 — zwei Siedler passen nicht mehr beide hinein.
+        // The cap is 5 and 4 are used — two settlers no longer both fit.
         for (int i = 0; i < 2; i++)
         {
             world.Commands.Enqueue(new TrainUnitCommand
@@ -383,7 +383,7 @@ public static class SelfTest
         Check("Cancellation refunds the cost", player.GetResource(ResourceType.Food) == foodBefore + 50);
     }
 
-    // --- Hilfsmittel -----------------------------------------------------
+    // --- Helpers ---------------------------------------------------------
 
     private static Building FindTownCenter(SimulationWorld world, int ownerId)
     {

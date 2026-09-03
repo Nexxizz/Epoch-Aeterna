@@ -1,6 +1,6 @@
 namespace EpochAeterna.Core.Data;
 
-/// <summary>Womit zugeschlagen wird.</summary>
+/// <summary>What the blow is struck with.</summary>
 public enum DamageType
 {
     Blunt = 0,
@@ -9,7 +9,7 @@ public enum DamageType
     Siege = 3,
 }
 
-/// <summary>Wogegen zugeschlagen wird.</summary>
+/// <summary>What the blow is struck against.</summary>
 public enum ArmorClass
 {
     Civilian = 0,

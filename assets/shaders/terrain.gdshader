@@ -1,12 +1,12 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// 4-fach-Splatting. Die Gewichte liegen in den Kanaelen der Splat-Map:
+// Four-way splatting. The weights sit in the channels of the splat map:
 // R = Gras, G = Erde, B = Fels, A = Sand.
 //
-// Solange keine echten Texturen vorliegen (Phase 5), sind die Sampler auf Weiss
-// vorbelegt und es bleiben die Farbwerte uebrig. Sobald Texturen zugewiesen werden,
-// modulieren sie die Farben — ohne Aenderung an diesem Shader.
+// While no real textures exist, the samplers default to white and only the
+// colour values remain. As soon as textures are assigned they modulate those
+// colours — without any change to this shader.
 
 uniform sampler2D splat_map : filter_linear, hint_default_black;
 
@@ -24,15 +24,15 @@ uniform float tile_scale = 0.12;
 uniform float detail_strength = 0.10;
 uniform float terrain_roughness = 0.93;
 
-// Nebel des Krieges: 1 = sichtbar, ~0.45 = erinnert, 0 = unerkundet.
-// Weiss vorbelegt, damit das Gelaende ohne zugewiesene Textur voll sichtbar bleibt.
+// Fog of war: 1 = visible, ~0.45 = remembered, 0 = unexplored.
+// Defaults to white, so the terrain stays fully visible without an assigned texture.
 uniform sampler2D fog_map : filter_linear, hint_default_white;
 uniform float fog_darkness = 0.82;
 
 varying vec3 world_position;
 
-// Billiges Wert-Rauschen, das die grossen einfarbigen Flaechen aufbricht.
-// Ersatzlos streichbar, sobald echte Texturen da sind.
+// Cheap value noise that breaks up the large flat areas of colour.
+// Can be removed outright once real textures are in.
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -57,7 +57,7 @@ void vertex() {
 void fragment() {
 	vec4 weights = texture(splat_map, UV);
 
-	// Normalisieren, damit die Helligkeit unabhaengig von der Gewichtssumme bleibt.
+	// Normalise, so brightness stays independent of the sum of the weights.
 	float total = weights.r + weights.g + weights.b + weights.a;
 	weights /= max(total, 0.0001);
 
@@ -69,14 +69,14 @@ void fragment() {
 		texture(tex_rock,  tile_uv).rgb * color_rock.rgb  * weights.b +
 		texture(tex_sand,  tile_uv).rgb * color_sand.rgb  * weights.a;
 
-	// Zwei Rauschfrequenzen ueberlagert: grob fuer Flecken, fein fuer Koernung.
+	// Two noise frequencies layered: coarse for patches, fine for grain.
 	float detail =
 		value_noise(world_position.xz * 0.35) * 0.65 +
 		value_noise(world_position.xz * 1.70) * 0.35;
 
 	albedo *= 1.0 - detail_strength + detail * detail_strength * 2.0;
 
-	// Unerkundetes Gelaende wird fast schwarz, erinnertes deutlich abgedunkelt.
+	// Unexplored terrain goes almost black, remembered terrain clearly dimmed.
 	float visibility = texture(fog_map, UV).r;
 	albedo *= mix(1.0 - fog_darkness, 1.0, visibility);
 

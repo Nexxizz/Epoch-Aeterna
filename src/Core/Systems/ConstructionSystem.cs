@@ -5,13 +5,13 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Treibt Baustellen voran, solange Siedler daran arbeiten.
+/// Drives construction sites forward as long as settlers work on them.
 /// </summary>
 /// <remarks>
-/// Mehrere Siedler bauen schneller, aber mit abnehmendem Ertrag: Der zweite bringt
-/// noch viel, der fuenfte kaum noch etwas. Ohne diese Daempfung waere es immer
-/// optimal, jeden verfuegbaren Siedler auf jede Baustelle zu schicken — eine
-/// Entscheidung ohne Abwaegung ist keine.
+/// Several settlers build faster, but with diminishing returns: the second still
+/// contributes a lot, the fifth barely anything. Without that damping it would
+/// always be optimal to send every available settler to every site — and a
+/// decision without a trade-off is not a decision.
 /// </remarks>
 public sealed class ConstructionSystem : ISimulationSystem
 {
@@ -21,7 +21,7 @@ public sealed class ConstructionSystem : ISimulationSystem
 
     public void Tick(SimulationWorld world, float deltaSeconds)
     {
-        // Zaehler zuruecksetzen: wer mitarbeitet, meldet sich in diesem Tick selbst.
+        // Reset the counter: whoever helps reports in during this tick.
         foreach (Building building in world.Entities.Buildings) building.ActiveBuilders = 0;
 
         foreach (Unit unit in world.Entities.Units)
@@ -63,8 +63,8 @@ public sealed class ConstructionSystem : ISimulationSystem
             float rate = EffectiveBuilders(site.ActiveBuilders) / site.BuildTimeSeconds;
             site.ConstructionProgress = Mathf.Min(1f, site.ConstructionProgress + rate * deltaSeconds);
 
-            // Lebenspunkte wachsen mit dem Fortschritt — eine frische Baustelle
-            // ist leicht zu zerstoeren, ein fast fertiges Gebaeude kaum noch.
+            // Health grows with progress — a fresh site is easy to destroy, an almost
+            // finished building barely so.
             site.Health = Mathf.Max(site.Health, site.MaxHealth * Mathf.Max(0.05f, site.ConstructionProgress));
 
             if (site.ConstructionStage != stageBefore) world.Events.RaiseConstructionStageChanged(site);
@@ -81,8 +81,8 @@ public sealed class ConstructionSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Wirksame Bauleistung bei n Siedlern. Der erste zaehlt voll, jeder weitere
-    /// nur noch mit abnehmendem Anteil.
+    /// Effective build output for n settlers. The first counts fully, every further
+    /// one only with a diminishing share.
     /// </summary>
     private static float EffectiveBuilders(int count)
     {
@@ -91,7 +91,7 @@ public sealed class ConstructionSystem : ISimulationSystem
         return total;
     }
 
-    /// <summary>Fertig gebaut — die Siedler stehen wieder zur Verfuegung.</summary>
+    /// <summary>Finished — the settlers are available again.</summary>
     private static void ReleaseBuilders(SimulationWorld world, Building site)
     {
         foreach (Unit unit in world.Entities.Units)

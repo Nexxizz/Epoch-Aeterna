@@ -4,7 +4,7 @@ using EpochAeterna.Core.Data;
 
 namespace EpochAeterna.Core.Entities;
 
-/// <summary>Ein Posten in der Ausbildungswarteschlange eines Gebaeudes.</summary>
+/// <summary>One entry in a building's training queue.</summary>
 public sealed class ProductionOrder
 {
     public required string UnitDefinitionId { get; init; }
@@ -15,12 +15,12 @@ public sealed class ProductionOrder
     public bool IsComplete => ElapsedSeconds >= TotalSeconds;
 }
 
-/// <summary>Gebaeude — im Bau oder fertig.</summary>
+/// <summary>A building — under construction or finished.</summary>
 public sealed class Building : Entity
 {
     public const int MaxQueueLength = 5;
 
-    /// <summary>Sichtbare Baustufen: Fundament, Rohbau, fertig.</summary>
+    /// <summary>Visible construction stages: foundation, shell, finished.</summary>
     public const int ConstructionStages = 3;
 
     public Vector2I Footprint { get; set; } = new(2, 2);
@@ -29,7 +29,7 @@ public sealed class Building : Entity
     public bool CanAdvanceAge { get; set; }
     public bool IsFarm { get; set; }
 
-    // --- Verteidigung ----------------------------------------------------
+    // --- Defence ---------------------------------------------------------
 
     public float AttackDamage { get; set; }
     public float AttackRange { get; set; }
@@ -41,27 +41,27 @@ public sealed class Building : Entity
     public float Armor { get; set; }
     public EntityId AttackTarget { get; set; } = EntityId.None;
 
-    // --- Bau -------------------------------------------------------------
+    // --- Construction ----------------------------------------------------
 
-    /// <summary>0 bis 1. Unter 1 ist das Gebaeude eine Baustelle und tut nichts.</summary>
+    /// <summary>0 to 1. Below 1 the building is a construction site and does nothing.</summary>
     public float ConstructionProgress { get; set; } = 1f;
 
     public bool IsUnderConstruction => ConstructionProgress < 1f;
 
-    /// <summary>Gesamte Bauarbeit in Sekunden, wenn genau ein Siedler daran arbeitet.</summary>
+    /// <summary>Total build work in seconds when exactly one settler works on it.</summary>
     public float BuildTimeSeconds { get; set; } = 20f;
 
-    /// <summary>Siedler, die in diesem Tick Hand angelegt haben. Wird jeden Tick neu gezaehlt.</summary>
+    /// <summary>Settlers who worked here this tick. Recounted every tick.</summary>
     public int ActiveBuilders { get; set; }
 
-    /// <summary>0, 1 oder 2 — welches Baustufen-Modell gezeigt wird.</summary>
+    /// <summary>0, 1 or 2 — which construction stage model is shown.</summary>
     public int ConstructionStage => IsUnderConstruction
         ? Mathf.Clamp((int)(ConstructionProgress * ConstructionStages), 0, ConstructionStages - 1)
         : ConstructionStages - 1;
 
-    // --- Produktion ------------------------------------------------------
+    // --- Production ------------------------------------------------------
 
-    /// <summary>Wohin frisch ausgebildete Einheiten laufen. Null = direkt neben dem Gebaeude bleiben.</summary>
+    /// <summary>Where freshly trained units walk. Null means they stay beside the building.</summary>
     public Vector2? RallyPoint { get; set; }
 
     public List<ProductionOrder> Queue { get; } = new();
@@ -69,7 +69,7 @@ public sealed class Building : Entity
     public ProductionOrder? CurrentOrder => Queue.Count > 0 ? Queue[0] : null;
     public bool QueueIsFull => Queue.Count >= MaxQueueLength;
 
-    /// <summary>Laeuft der Zeitalteraufstieg hier gerade? Sekunden bis zur Fertigstellung.</summary>
+    /// <summary>Is an age advance running here? Seconds until it completes.</summary>
     public float AgeResearchLeft { get; set; }
 
     public bool IsResearchingAge => AgeResearchLeft > 0f;
@@ -93,17 +93,17 @@ public sealed class Building : Entity
         Armor = definition.Armor;
     }
 
-    /// <summary>Startet als Baustelle: kaum Lebenspunkte, kein Nutzen, bis sie fertig ist.</summary>
+    /// <summary>Starts as a construction site: barely any health, no use, until finished.</summary>
     public void BeginConstruction()
     {
         ConstructionProgress = 0f;
         Health = Mathf.Max(1f, MaxHealth * 0.05f);
     }
 
-    /// <summary>Halber Radius der Grundflaeche in Metern — fuer Reichweiten und Andocken.</summary>
+    /// <summary>Half the footprint radius in metres — used for ranges and for docking.</summary>
     public float FootprintRadius =>
         Mathf.Max(Footprint.X, Footprint.Y) * 0.5f * Pathfinding.NavGrid.CellSize;
 
-    /// <summary>Punkt, an dem eine fertige Einheit erscheint: knapp ausserhalb der Grundflaeche.</summary>
+    /// <summary>Where a finished unit appears: just outside the footprint.</summary>
     public Vector2 SpawnPoint() => Position + new Vector2(0f, FootprintRadius + 1.5f);
 }

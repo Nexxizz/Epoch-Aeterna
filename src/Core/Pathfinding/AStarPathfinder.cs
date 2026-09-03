@@ -4,15 +4,15 @@ using Godot;
 namespace EpochAeterna.Core.Pathfinding;
 
 /// <summary>
-/// A* auf dem Navigationsgitter, mit anschliessender Pfadglaettung.
+/// A* on the navigation grid, followed by path smoothing.
 /// </summary>
 /// <remarks>
-/// Die Arbeitsfelder werden einmal angelegt und pro Suche nur ueber einen
-/// Generationszaehler entwertet, statt sie jedes Mal zu leeren. Bei 128x128 Kacheln
-/// spart das den groessten Einzelposten der Suche.
+/// The working arrays are allocated once and invalidated per search through a
+/// generation counter rather than being cleared every time. At 128x128 tiles
+/// that saves the single largest cost of the search.
 ///
-/// Nicht threadsicher — pro Simulation genuegt eine Instanz, weil die Suche
-/// ohnehin im Tick laeuft.
+/// Not thread-safe — one instance per simulation is enough, because the search
+/// runs inside the tick anyway.
 /// </remarks>
 public sealed class AStarPathfinder
 {
@@ -29,10 +29,10 @@ public sealed class AStarPathfinder
 
     private int _generation;
 
-    /// <summary>Obergrenze expandierter Knoten je Suche — verhindert Ausreisser bei unloesbaren Zielen.</summary>
+    /// <summary>Cap on expanded nodes per search — prevents outliers on unsolvable targets.</summary>
     public int MaxExpansions { get; set; } = 6000;
 
-    /// <summary>Wie viele Knoten die letzte Suche geoeffnet hat, fuers Profiling.</summary>
+    /// <summary>How many nodes the last search opened, for profiling.</summary>
     public int LastExpansions { get; private set; }
 
     public AStarPathfinder(NavGrid grid)
@@ -47,9 +47,9 @@ public sealed class AStarPathfinder
     }
 
     /// <summary>
-    /// Sucht einen Weg und schreibt geglaettete Wegpunkte in <paramref name="result"/>.
+    /// Searches for a path and writes smoothed waypoints into <paramref name="result"/>.
     /// </summary>
-    /// <returns>false, wenn kein Weg existiert; <paramref name="result"/> ist dann leer.</returns>
+    /// <returns>false when no path exists; <paramref name="result"/> is then empty.</returns>
     public bool TryFindPath(Vector2 fromWorld, Vector2 toWorld, int clearance, List<Vector2> result)
     {
         result.Clear();
@@ -57,8 +57,8 @@ public sealed class AStarPathfinder
         Vector2I start = _grid.ClampCell(_grid.WorldToCell(fromWorld));
         Vector2I goal = _grid.ClampCell(_grid.WorldToCell(toWorld));
 
-        // Auf ein Hindernis geklickt: den naechsten freien Platz daneben nehmen,
-        // statt den Befehl wortlos zu verwerfen.
+        // Clicked on an obstacle: take the nearest free spot beside it
+        // instead of silently discarding the order.
         if (!_grid.IsPassable(goal.X, goal.Y, clearance))
         {
             goal = _grid.FindNearestPassable(goal, clearance);
@@ -112,8 +112,8 @@ public sealed class AStarPathfinder
                     int ny = cy + dy;
                     if (!_grid.IsPassable(nx, ny, clearance)) continue;
 
-                    // Diagonalen nur, wenn beide angrenzenden Geraden frei sind —
-                    // sonst schneiden Einheiten durch Hausecken.
+                    // Diagonals only when both adjacent straights are free —
+                    // otherwise units cut through the corners of buildings.
                     if (dx != 0 && dy != 0 &&
                         (!_grid.IsPassable(cx + dx, cy, clearance) ||
                          !_grid.IsPassable(cx, cy + dy, clearance)))
@@ -144,7 +144,7 @@ public sealed class AStarPathfinder
         return result.Count > 0;
     }
 
-    /// <summary>Setzt einen Knoten auf Startwerte, sofern er in dieser Suche noch nicht besucht wurde.</summary>
+    /// <summary>Resets a node to its initial values unless this search already visited it.</summary>
     private void Touch(int index)
     {
         if (_visitedGeneration[index] == _generation) return;
@@ -158,11 +158,11 @@ public sealed class AStarPathfinder
     {
         int dx = Mathf.Abs(a.X - b.X);
         int dy = Mathf.Abs(a.Y - b.Y);
-        // Oktil-Distanz: exakt fuer 8-Richtungs-Bewegung, daher zulaessig und praezise.
+        // Octile distance: exact for 8-direction movement, therefore admissible and precise.
         return StraightCost * (dx + dy) + (DiagonalCost - 2f * StraightCost) * Mathf.Min(dx, dy);
     }
 
-    /// <summary>Steigungen verteuern, damit Einheiten flache Umwege bevorzugen.</summary>
+    /// <summary>Makes slopes more expensive so units prefer flat detours.</summary>
     private float SlopePenalty(int fromX, int fromY, int toX, int toY)
     {
         float delta = Mathf.Abs(_grid.CellSlope(toX, toY) - _grid.CellSlope(fromX, fromY));
@@ -179,8 +179,8 @@ public sealed class AStarPathfinder
     }
 
     /// <summary>
-    /// String-Pulling: Zwischenpunkte entfallen, solange die direkte Sicht frei bleibt.
-    /// Aus dem Treppenmuster des Gitters werden dadurch lange gerade Strecken.
+    /// String pulling: intermediate points fall away as long as the direct line stays clear.
+    /// That turns the grid's staircase pattern into long straight stretches.
     /// </summary>
     private void Smooth(List<Vector2> path, int clearance)
     {
@@ -203,7 +203,7 @@ public sealed class AStarPathfinder
         path.AddRange(smoothed);
     }
 
-    /// <summary>Prueft alle beruehrten Kacheln entlang der Strecke (Supercover-Linie).</summary>
+    /// <summary>Checks every tile the line touches (supercover line).</summary>
     private bool HasLineOfSight(Vector2 from, Vector2 to, int clearance)
     {
         Vector2I a = _grid.WorldToCell(from);
@@ -237,7 +237,7 @@ public sealed class AStarPathfinder
         }
     }
 
-    /// <summary>Minimaler Min-Heap ueber Knotenindizes. Vermeidet die Zuweisungen einer PriorityQueue.</summary>
+    /// <summary>Minimal min-heap over node indices. Avoids the allocations of a PriorityQueue.</summary>
     private sealed class BinaryHeap
     {
         private readonly int[] _items;
@@ -247,7 +247,7 @@ public sealed class AStarPathfinder
 
         public BinaryHeap(int capacity)
         {
-            // Ein Knoten kann mehrfach mit besserer Bewertung eingereiht werden.
+            // A node can be queued more than once with a better score.
             _items = new int[capacity * 4];
             _priorities = new float[capacity * 4];
         }

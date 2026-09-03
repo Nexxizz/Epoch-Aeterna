@@ -6,16 +6,16 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Der Sammelkreislauf: hinlaufen, abbauen, zur Abgabestelle bringen, zurueckkehren.
+/// The gathering cycle: walk there, harvest, carry to the drop-off point, return.
 /// </summary>
 /// <remarks>
-/// Der Kreislauf laeuft von selbst weiter: Ist ein Vorkommen erschoepft, sucht der
-/// Siedler das naechste gleichartige, statt untaetig stehen zu bleiben. Genau das
-/// erwartet man in einem RTS, und es erspart staendiges Nachklicken.
+/// The cycle continues on its own: once a deposit is exhausted the settler looks
+/// for the next one of the same kind instead of standing idle. That is what an RTS
+/// is expected to do, and it saves constant re-clicking.
 /// </remarks>
 public sealed class GatheringSystem : ISimulationSystem
 {
-    /// <summary>Abstand, ab dem am Vorkommen bzw. an der Abgabestelle gearbeitet werden kann.</summary>
+    /// <summary>Distance at which work at the deposit or the drop-off point can begin.</summary>
     private const float WorkRange = 1.4f;
 
     public string Name => "Gathering";
@@ -35,7 +35,7 @@ public sealed class GatheringSystem : ISimulationSystem
         }
     }
 
-    // --- Hinweg ----------------------------------------------------------
+    // --- Outbound --------------------------------------------------------
 
     private static void WalkToNode(SimulationWorld world, Unit unit)
     {
@@ -57,12 +57,12 @@ public sealed class GatheringSystem : ISimulationSystem
             return;
         }
 
-        // Nur nachfordern, wenn gerade kein Pfad laeuft — sonst wuerde jeder Tick
-        // eine neue Suche ausloesen und das Budget auffressen.
+        // Only request again when no path is running — otherwise every tick would
+        // trigger a new search and eat the budget.
         if (!unit.HasPath && !unit.NeedsPath) unit.StartMoveTo(ApproachPoint(unit.Position, node.Position, WorkRange));
     }
 
-    // --- Abbau -----------------------------------------------------------
+    // --- Harvesting ------------------------------------------------------
 
     private static void Harvest(SimulationWorld world, Unit unit, float deltaSeconds)
     {
@@ -72,7 +72,7 @@ public sealed class GatheringSystem : ISimulationSystem
         {
             if (node is not null) node.ActiveGatherers = Mathf.Max(0, node.ActiveGatherers - 1);
 
-            // Mit halber Ladung lohnt der Rueckweg trotzdem.
+            // Even half a load makes the trip back worthwhile.
             if (unit.CarriedAmount > 0f) BeginReturn(world, unit);
             else if (!RetargetNearestNode(world, unit)) unit.Stop();
             return;
@@ -81,8 +81,8 @@ public sealed class GatheringSystem : ISimulationSystem
         unit.CarriedResource = node.Resource;
         unit.HarvestProgress += unit.GatherRatePerSecond * node.GatherRateFactor * deltaSeconds;
 
-        // Erst ganze Einheiten dem Vorkommen entnehmen — sonst wuerde der Vorrat
-        // durch Rundung langsam verpuffen.
+        // Take whole units from the deposit first — otherwise rounding would slowly
+        // evaporate the stock.
         int whole = Mathf.FloorToInt(unit.HarvestProgress);
         if (whole > 0)
         {
@@ -106,7 +106,7 @@ public sealed class GatheringSystem : ISimulationSystem
         }
     }
 
-    // --- Rueckweg --------------------------------------------------------
+    // --- Return trip -----------------------------------------------------
 
     private static void BeginReturn(SimulationWorld world, Unit unit)
     {
@@ -114,7 +114,7 @@ public sealed class GatheringSystem : ISimulationSystem
 
         if (dropOff is null)
         {
-            // Keine Abgabestelle mehr da: die Ladung bleibt erhalten, der Siedler wartet.
+            // No drop-off point left: the load is kept and the settler waits.
             unit.Stop();
             return;
         }
@@ -163,7 +163,7 @@ public sealed class GatheringSystem : ISimulationSystem
         unit.CarriedAmount = 0f;
         unit.ClearPath();
 
-        // Zurueck an die Arbeit — zum alten Vorkommen, sonst zum naechsten gleichartigen.
+        // Back to work — to the old deposit, otherwise to the next of the same kind.
         ResourceNode? node = world.Entities.GetResourceNode(unit.GatherTarget);
 
         if (node is not null && !node.IsDepleted)
@@ -175,9 +175,9 @@ public sealed class GatheringSystem : ISimulationSystem
         if (!RetargetNearestNode(world, unit)) unit.Stop();
     }
 
-    // --- Hilfsmittel -----------------------------------------------------
+    // --- Helpers ---------------------------------------------------------
 
-    /// <summary>Sucht das naechste Vorkommen derselben Art. false, wenn keins mehr existiert.</summary>
+    /// <summary>Finds the nearest deposit of the same kind. false when none is left.</summary>
     private static bool RetargetNearestNode(SimulationWorld world, Unit unit)
     {
         ResourceType wanted = unit.CarriedResource;
@@ -191,7 +191,7 @@ public sealed class GatheringSystem : ISimulationSystem
 
             float distance = unit.Position.DistanceSquaredTo(candidate.Position);
 
-            // Volle Vorkommen bevorzugen, damit sich nicht alles an einem Baum staut.
+            // Prefer deposits with room, so everything does not pile up around one tree.
             if (!candidate.HasFreeSlot) distance *= 4f;
             if (distance >= bestDistance) continue;
 
@@ -227,7 +227,7 @@ public sealed class GatheringSystem : ISimulationSystem
         return best;
     }
 
-    /// <summary>Punkt kurz vor dem Ziel — man laeuft nicht in den Baum, sondern davor.</summary>
+    /// <summary>A point just short of the target — you walk up to the tree, not into it.</summary>
     private static Vector2 ApproachPoint(Vector2 from, Vector2 target, float standOff)
     {
         Vector2 delta = from - target;

@@ -1,11 +1,11 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley;
 
-// Beiwerk (Grasbueschel, lose Steine). Nutzt dieselbe Nebeltextur wie das Gelaende,
-// damit Streuobjekte nicht im unerkundeten Gebiet durchleuchten.
+// Clutter (grass tufts, loose stones). Uses the same fog texture as the terrain,
+// so scattered objects do not shine through in unexplored territory.
 //
-// Die UV wird aus der Weltposition berechnet, weil MultiMesh-Instanzen keine
-// eigenen UV-Bereiche haben — die Kartenausdehnung kommt dafuer als Uniform herein.
+// The UV is computed from the world position, because MultiMesh instances have no
+// UV ranges of their own — the map extent comes in as a uniform instead.
 
 uniform vec4 albedo_color : source_color = vec4(0.26, 0.36, 0.17, 1.0);
 uniform sampler2D fog_map : filter_linear, hint_default_white;

@@ -5,14 +5,14 @@ using EpochAeterna.Core.Pathfinding;
 
 namespace EpochAeterna.Core.Simulation;
 
-/// <summary>Schickt Einheiten zu einem Punkt. Der Weg wird vom PathfindingSystem gesucht.</summary>
+/// <summary>Sends units to a point. The route is found by the PathfindingSystem.</summary>
 public sealed class MoveCommand : ICommand
 {
     public required int PlayerId { get; init; }
     public required EntityId[] Units { get; init; }
     public required Vector2 Target { get; init; }
 
-    /// <summary>Shift-Klick: an den laufenden Befehl anhaengen, statt ihn zu ersetzen.</summary>
+    /// <summary>Shift-click: append to the running order instead of replacing it.</summary>
     public bool Queued { get; init; }
 
     /// <summary>Angriffsbewegung: unterwegs alles bekaempfen, was in Reichweite kommt.</summary>
@@ -20,8 +20,8 @@ public sealed class MoveCommand : ICommand
 
     public void Execute(SimulationWorld world)
     {
-        // Formation: Einheiten werden ringfoermig um das Ziel verteilt, damit sie
-        // sich nicht alle auf denselben Punkt draengen.
+        // Formation: units are spread in a ring around the target so they do not
+        // all crowd onto the same point.
         int count = Units.Length;
         int placed = 0;
 
@@ -40,7 +40,7 @@ public sealed class MoveCommand : ICommand
         }
     }
 
-    /// <summary>Spiralfoermige Platzverteilung: Index 0 in der Mitte, danach in wachsenden Ringen.</summary>
+    /// <summary>Spiral slot layout: index 0 in the centre, then in growing rings.</summary>
     private static Vector2 FormationOffset(int index, float radius)
     {
         if (index == 0) return Vector2.Zero;
@@ -64,7 +64,7 @@ public sealed class MoveCommand : ICommand
     }
 }
 
-/// <summary>Bricht die aktuelle Taetigkeit ab.</summary>
+/// <summary>Cancels the current activity.</summary>
 public sealed class StopCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -80,7 +80,7 @@ public sealed class StopCommand : ICommand
     }
 }
 
-/// <summary>Setzt die Haltung: wie selbstaendig auf Feinde reagiert wird.</summary>
+/// <summary>Sets the stance: how independently a unit reacts to enemies.</summary>
 public sealed class SetStanceCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -100,7 +100,7 @@ public sealed class SetStanceCommand : ICommand
     }
 }
 
-/// <summary>Schickt Siedler an ein Ressourcenvorkommen.</summary>
+/// <summary>Sends settlers to a resource deposit.</summary>
 public sealed class GatherCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -145,7 +145,7 @@ public sealed class AttackCommand : ICommand
 }
 
 /// <summary>
-/// Setzt eine Baustelle und schickt die ausgewaehlten Siedler hin.
+/// Places a construction site and sends the selected settlers to it.
 /// </summary>
 public sealed class PlaceBuildingCommand : ICommand
 {
@@ -170,8 +170,8 @@ public sealed class PlaceBuildingCommand : ICommand
             return;
         }
 
-        // Die Baustelle existiert erst nach dem Flush in der Registry — die Siedler
-        // bekommen den Auftrag trotzdem schon jetzt, sie laufen ohnehin erst hin.
+        // The site only enters the registry on flush — the settlers get the assignment
+        // now regardless, since they have to walk there first anyway.
         foreach (EntityId id in Builders)
         {
             Unit? unit = world.Entities.GetUnit(id);
@@ -180,7 +180,7 @@ public sealed class PlaceBuildingCommand : ICommand
     }
 }
 
-/// <summary>Schickt Siedler an eine bestehende Baustelle.</summary>
+/// <summary>Sends settlers to an existing construction site.</summary>
 public sealed class RepairOrBuildCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -200,7 +200,7 @@ public sealed class RepairOrBuildCommand : ICommand
     }
 }
 
-/// <summary>Reisst ein eigenes Gebaeude ab und erstattet einen Teil der Kosten.</summary>
+/// <summary>Demolishes one of your own buildings and refunds part of the cost.</summary>
 public sealed class DemolishCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -216,7 +216,7 @@ public sealed class DemolishCommand : ICommand
 
         if (definition?.Cost is not null && player is not null)
         {
-            // Anteilig zum Baufortschritt: eine halbfertige Baustelle gibt weniger zurueck.
+            // Proportional to build progress: a half-finished site gives back less.
             float fraction = definition.DemolishRefundFraction * building.ConstructionProgress;
 
             foreach (ResourceType type in ResourceTypes.All)
@@ -229,7 +229,7 @@ public sealed class DemolishCommand : ICommand
     }
 }
 
-/// <summary>Haengt eine Einheit an die Ausbildungswarteschlange eines Gebaeudes.</summary>
+/// <summary>Appends a unit to a building's training queue.</summary>
 public sealed class TrainUnitCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -254,8 +254,8 @@ public sealed class TrainUnitCommand : ICommand
         if (player.AgeIndex < unitDef.RequiredAgeIndex) return;
         if (!player.TrySpend(unitDef.Cost)) return;
 
-        // Bevoelkerungslimit wird erst bei Fertigstellung geprueft — so blockiert eine
-        // volle Bevoelkerung die Warteschlange, statt den Befehl stumm zu verschlucken.
+        // The population cap is only checked on completion — that way a full population
+        // stalls the queue instead of silently swallowing the order.
         building.Queue.Add(new ProductionOrder
         {
             UnitDefinitionId = UnitDefinitionId,
@@ -266,7 +266,7 @@ public sealed class TrainUnitCommand : ICommand
     }
 }
 
-/// <summary>Nimmt einen Posten aus der Warteschlange und erstattet die Kosten.</summary>
+/// <summary>Takes an entry off the queue and refunds its cost.</summary>
 public sealed class CancelTrainingCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -287,7 +287,7 @@ public sealed class CancelTrainingCommand : ICommand
     }
 }
 
-/// <summary>Setzt den Sammelpunkt eines Produktionsgebaeudes.</summary>
+/// <summary>Sets a production building's rally point.</summary>
 public sealed class SetRallyPointCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -301,7 +301,7 @@ public sealed class SetRallyPointCommand : ICommand
     }
 }
 
-/// <summary>Startet den Aufstieg ins naechste Zeitalter.</summary>
+/// <summary>Starts the advance into the next age.</summary>
 public sealed class AdvanceAgeCommand : ICommand
 {
     public required int PlayerId { get; init; }
@@ -325,7 +325,7 @@ public sealed class AdvanceAgeCommand : ICommand
         building.AgeResearchLeft = next.ResearchTimeSeconds;
     }
 
-    /// <summary>Zaehlt verschiedene fertige Gebaeudetypen — die Voraussetzung fuer den Aufstieg.</summary>
+    /// <summary>Counts distinct finished building types — the prerequisite for advancing.</summary>
     private static int CountDistinctBuildings(SimulationWorld world, int playerId)
     {
         var seen = new System.Collections.Generic.HashSet<string>();
@@ -338,10 +338,10 @@ public sealed class AdvanceAgeCommand : ICommand
     }
 }
 
-/// <summary>Prueft, ob ein Gebaeude an einer Stelle stehen darf. Von Befehl und Vorschau genutzt.</summary>
+/// <summary>Checks whether a building may stand somewhere. Used by both the command and the preview.</summary>
 public static class BuildPlacement
 {
-    /// <summary>Groesster zulaessiger Hoehenunterschied unter der Grundflaeche, in Metern.</summary>
+    /// <summary>Largest permitted height difference under the footprint, in metres.</summary>
     private const float MaxSlope = 1.6f;
 
     public static bool IsValid(SimulationWorld world, BuildingDefinition definition, Vector2 position, Player player)

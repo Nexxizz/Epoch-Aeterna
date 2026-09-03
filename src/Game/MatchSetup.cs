@@ -8,7 +8,7 @@ using EpochAeterna.Core.Systems;
 
 namespace EpochAeterna.Game;
 
-/// <summary>Startbedingungen eines Spielers.</summary>
+/// <summary>A player's starting conditions.</summary>
 public sealed class PlayerConfig
 {
     public required int Id { get; init; }
@@ -18,7 +18,7 @@ public sealed class PlayerConfig
     public bool IsHuman { get; init; }
 }
 
-/// <summary>Alles, was eine Partie definiert. Spaeter aus dem Hauptmenue befuellt.</summary>
+/// <summary>Everything that defines a match. Filled from the main menu later on.</summary>
 public sealed class MatchConfig
 {
     public ulong Seed { get; init; } = 12345;
@@ -26,7 +26,7 @@ public sealed class MatchConfig
     public int StartingSettlers { get; init; } = 4;
     public int MapSize { get; init; } = 128;
 
-    /// <summary>Fuer Tests und Debug: Nebel des Krieges abschalten.</summary>
+    /// <summary>For tests and debugging: switch off the fog of war.</summary>
     public bool FogOfWar { get; init; } = true;
 
     public ResourceSet StartingResources { get; init; } = new()
@@ -38,7 +38,7 @@ public sealed class MatchConfig
     };
 }
 
-/// <summary>Eine aufgebaute Partie: Simulation plus die Karte, aus der sie entstanden ist.</summary>
+/// <summary>An assembled match: the simulation plus the map it grew from.</summary>
 public sealed class Match
 {
     public required SimulationWorld World { get; init; }
@@ -46,11 +46,11 @@ public sealed class Match
 }
 
 /// <summary>
-/// Baut aus einer <see cref="MatchConfig"/> eine spielfertige Partie.
+/// Turns a <see cref="MatchConfig"/> into a match ready to play.
 /// </summary>
 /// <remarks>
-/// Bewusst getrennt vom Einstiegs-Node: Diese Methode braucht keinen SceneTree und
-/// laesst sich daher in Tests und in der KI-Vorausberechnung genauso aufrufen.
+/// Deliberately separate from the entry node: this method needs no SceneTree and can
+/// therefore be called from tests and from AI look-ahead in exactly the same way.
 /// </remarks>
 public static class MatchSetup
 {
@@ -87,19 +87,19 @@ public static class MatchSetup
             SpawnStartingBase(world, playerConfig.Id, start, config.StartingSettlers);
         }
 
-        // Startbestand sofort uebernehmen, damit Views und HUD schon vor dem
-        // ersten Tick einen vollstaendigen Weltzustand sehen.
+        // Commit the starting population immediately, so views and HUD see a complete
+        // world state before the first tick.
         world.FlushSpawns();
 
-        // Erste Sichtbarkeit setzen, sonst startet man im Schwarzen.
+        // Set the initial visibility, otherwise the match starts in the dark.
         world.GetSystem<VisionSystem>()?.Tick(world, SimulationWorld.TickDelta);
 
         return new Match { World = world, Map = map };
     }
 
     /// <summary>
-    /// Reihenfolge der Systeme. Sie ist Teil der Spielregeln, nicht nebensaechlich:
-    /// Erst wird entschieden und gelaufen, dann gekaempft, zuletzt ausgewertet.
+    /// The order of the systems. It is part of the game rules, not an afterthought:
+    /// first decide and move, then fight, then evaluate.
     /// </summary>
     private static void RegisterSystems(SimulationWorld world, GeneratedMap map, MatchConfig config)
     {
@@ -129,7 +129,7 @@ public static class MatchSetup
         Building? townCenter = world.SpawnBuilding(TownCenterId, ownerId, position);
         if (townCenter is null) return;
 
-        // Siedler im Halbkreis vor dem Rathaus aufstellen.
+        // Place the settlers in a semicircle in front of the town centre.
         const float radius = 7f;
         for (int i = 0; i < settlerCount; i++)
         {
@@ -139,7 +139,7 @@ public static class MatchSetup
         }
     }
 
-    /// <summary>Zwei-Spieler-Aufstellung fuer die Testkarte.</summary>
+    /// <summary>Two-player setup for the test map.</summary>
     public static MatchConfig DefaultSkirmish() => new()
     {
         Players =

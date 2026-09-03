@@ -5,19 +5,19 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Zeichnet alle fliegenden Geschosse als eine einzige <see cref="MultiMeshInstance3D"/>.
+/// Draws every projectile in flight as a single <see cref="MultiMeshInstance3D"/>.
 /// </summary>
 /// <remarks>
-/// Die Sim rechnet Geschosse flach auf der XZ-Ebene. Die Wurfparabel entsteht erst
-/// hier in der Darstellung: Sie ist reine Optik und darf die Trefferrechnung nicht
-/// beeinflussen — sonst haengt der Schaden von der Bildrate ab.
+/// The sim computes projectiles flat on the XZ plane. The arc appears only here in
+/// the display: it is purely visual and must not influence hit calculation —
+/// otherwise damage would depend on the frame rate.
 /// </remarks>
 public sealed partial class ProjectileRenderer : Node3D
 {
-    /// <summary>Obergrenze gleichzeitig gezeichneter Geschosse.</summary>
+    /// <summary>Upper bound on projectiles drawn at once.</summary>
     private const int Capacity = 512;
 
-    /// <summary>Scheitelhoehe der Flugbahn, anteilig zur Wurfweite.</summary>
+    /// <summary>Peak height of the trajectory, relative to the throwing distance.</summary>
     private const float ArcFactor = 0.12f;
 
     private readonly MultiMeshInstance3D _instance = new();
@@ -65,13 +65,13 @@ public sealed partial class ProjectileRenderer : Node3D
             Vector2 planar = projectile.Position;
             float ground = _grid.SampleHeight(planar);
 
-            // Parabel: null an beiden Enden, Maximum in der Mitte.
+            // Parabola: zero at both ends, maximum in the middle.
             float t = projectile.FlightProgress;
             float arc = 4f * t * (1f - t) * projectile.TotalDistance * ArcFactor;
 
             var position = new Vector3(planar.X, ground + 1.1f + arc, planar.Y);
 
-            // In Flugrichtung neigen, damit der Pfeil nicht quer durch die Luft treibt.
+            // Tilt along the direction of flight, so the arrow does not drift sideways.
             Vector2 heading = projectile.TargetPosition - planar;
             float yaw = heading.LengthSquared() > 0.0001f ? Mathf.Atan2(heading.X, heading.Y) : 0f;
             float pitch = Mathf.Lerp(-0.6f, 0.6f, t);

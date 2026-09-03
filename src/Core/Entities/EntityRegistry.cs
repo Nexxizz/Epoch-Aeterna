@@ -3,11 +3,11 @@ using System.Collections.Generic;
 namespace EpochAeterna.Core.Entities;
 
 /// <summary>
-/// Haelt alle lebenden Entities und vergibt IDs.
+/// Holds every living entity and hands out ids.
 /// </summary>
 /// <remarks>
-/// Hinzufuegen und Entfernen werden bis zum Tick-Ende gepuffert. Systeme duerfen so
-/// waehrend der Iteration Entities erzeugen und toeten, ohne die Auflistung zu zerstoeren.
+/// Additions and removals are buffered until the end of the tick. Systems may therefore
+/// create and kill entities while iterating without destroying the enumeration.
 /// </remarks>
 public sealed class EntityRegistry
 {
@@ -26,7 +26,7 @@ public sealed class EntityRegistry
     public IReadOnlyList<ResourceNode> ResourceNodes => _resourceNodes;
     public int Count => _byId.Count;
 
-    /// <summary>Wird nach dem Anlegen gefeuert, sobald die Entity wirklich in den Listen steht.</summary>
+    /// <summary>Raised after creation, once the entity is actually in the lists.</summary>
     public event System.Action<Entity>? EntityAdded;
 
     public event System.Action<Entity>? EntityRemoved;
@@ -36,9 +36,9 @@ public sealed class EntityRegistry
         entity.Id = new EntityId(_nextId++);
         entity.ResetInterpolation();
 
-        // Sofort auffindbar machen, aber erst beim Flush in die Typlisten einreihen.
-        // Damit kann ein Befehl im selben Tick etwas erzeugen und darauf verweisen,
-        // ohne dass laufende Iterationen ueber die Listen brechen.
+        // Make it findable immediately, but only file it into the typed lists on flush.
+        // That lets a command create something and refer to it in the same tick
+        // without breaking iterations already running over the lists.
         _byId[entity.Id.Value] = entity;
         _pendingAdd.Add(entity);
         return entity;
@@ -56,11 +56,11 @@ public sealed class EntityRegistry
 
     public bool Exists(EntityId id) => _byId.ContainsKey(id.Value);
 
-    /// <summary>Uebernimmt alle gepufferten Aenderungen. Wird am Ende jedes Ticks aufgerufen.</summary>
+    /// <summary>Applies every buffered change. Called at the end of each tick.</summary>
     public void Flush()
     {
-        // Erst entfernen, dann hinzufuegen: eine im selben Tick erzeugte Entity
-        // soll nicht versehentlich von einem aelteren Remove getroffen werden.
+        // Remove first, then add: an entity created in this same tick
+        // must not be caught by an older pending removal.
         if (_pendingRemove.Count > 0)
         {
             foreach (EntityId id in _pendingRemove)
@@ -80,7 +80,7 @@ public sealed class EntityRegistry
 
         if (_pendingAdd.Count > 0)
         {
-            // Kopie, damit EntityAdded-Handler ihrerseits spawnen duerfen.
+            // A copy, so that EntityAdded handlers may spawn in turn.
             var batch = new List<Entity>(_pendingAdd);
             _pendingAdd.Clear();
 
@@ -98,7 +98,7 @@ public sealed class EntityRegistry
         }
     }
 
-    /// <summary>Speichert fuer alle Entities den Zustand vor dem Tick — Grundlage der View-Interpolation.</summary>
+    /// <summary>Stores the pre-tick state of every entity — the basis of view interpolation.</summary>
     public void CaptureInterpolationSnapshots()
     {
         foreach (Unit unit in _units) unit.CaptureInterpolationSnapshot();

@@ -8,17 +8,17 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Haelt die sichtbare Welt mit der Simulation im Gleichstand: legt bei jedem Spawn
-/// eine <see cref="EntityView"/> an und raeumt sie beim Tod wieder ab.
+/// Keeps the visible world in step with the simulation: creates an
+/// <see cref="EntityView"/> on every spawn and clears it away on death.
 /// </summary>
 /// <remarks>
-/// Solange keine Modelle aus Blender vorliegen (Phase 5), erzeugt der Manager
-/// Platzhaltergeometrie. Sobald eine Definition eine <c>ModelScene</c> hat, wird
-/// diese stattdessen instanziiert — ohne Aenderung an diesem Code.
+/// As long as no Blender models exist for an entity, the manager produces
+/// placeholder geometry. As soon as a definition has a <c>ModelScene</c>, that gets
+/// instantiated instead — without any change to this code.
 /// </remarks>
 public sealed partial class ViewManager : Node3D
 {
-    /// <summary>Anzeigedauer der Zielmarkierung nach einem Rechtsklick, in Sekunden.</summary>
+    /// <summary>How long the target marker is shown after a right click, in seconds.</summary>
     private const float MarkerLifetime = 0.6f;
 
     private readonly Dictionary<int, EntityView> _views = new();
@@ -30,7 +30,7 @@ public sealed partial class ViewManager : Node3D
     private MeshInstance3D? _commandMarker;
     private float _markerTimeLeft;
 
-    /// <summary>Alle lebenden Views mit ihrer Entity — der Nebel braucht beides.</summary>
+    /// <summary>Every living view with its entity — the fog needs both.</summary>
     public IEnumerable<(Entity Entity, EntityView View)> Views
     {
         get
@@ -52,7 +52,7 @@ public sealed partial class ViewManager : Node3D
         world.Events.ConstructionStageChanged += OnConstructionChanged;
         world.Events.ConstructionCompleted += OnConstructionChanged;
 
-        // Alles, was vor dem Anmelden schon existiert, nachtraeglich aufnehmen.
+        // Pick up anything that already existed before subscribing.
         foreach (Entity entity in world.Entities.All()) OnEntitySpawned(entity);
     }
 
@@ -71,7 +71,7 @@ public sealed partial class ViewManager : Node3D
 
         _markerTimeLeft -= (float)delta;
 
-        // Ausblenden und dabei aufziehen — kurzes, unaufdringliches Feedback.
+        // Fade out while expanding — brief, unobtrusive feedback.
         float t = Mathf.Clamp(_markerTimeLeft / MarkerLifetime, 0f, 1f);
         _commandMarker.Scale = Vector3.One * Mathf.Lerp(1.6f, 0.7f, t);
         _commandMarker.Visible = _markerTimeLeft > 0f;
@@ -87,7 +87,7 @@ public sealed partial class ViewManager : Node3D
         if (_views.TryGetValue(id.Value, out EntityView? view)) view.SetSelected(selected);
     }
 
-    /// <summary>Zeigt kurz an, wohin der letzte Befehl ging.</summary>
+    /// <summary>Briefly shows where the last order went.</summary>
     public void FlashCommandMarker(Vector2 target, Color color)
     {
         if (_world is null) return;
@@ -119,7 +119,7 @@ public sealed partial class ViewManager : Node3D
         return marker;
     }
 
-    // --- Lebenszyklus ----------------------------------------------------
+    // --- Lifecycle -------------------------------------------------------
 
     private void OnEntitySpawned(Entity entity)
     {
@@ -138,7 +138,7 @@ public sealed partial class ViewManager : Node3D
         view.QueueFree();
     }
 
-    /// <summary>Baustufe erreicht oder fertig — das Modell wird ausgetauscht.</summary>
+    /// <summary>Stage reached or finished — the model is swapped.</summary>
     private void OnConstructionChanged(Building building)
     {
         if (_world is null) return;
@@ -148,9 +148,9 @@ public sealed partial class ViewManager : Node3D
         }
     }
 
-    // --- Modelle ---------------------------------------------------------
+    // --- Models ----------------------------------------------------------
 
-    /// <summary>Fertiges Modell aus der Definition, sonst Platzhalter.</summary>
+    /// <summary>The finished model from the definition, otherwise a placeholder.</summary>
     private Node3D BuildModel(Entity entity)
     {
         EntityDefinition? definition = _world?.Definitions.GetEntity(entity.DefinitionId);
@@ -174,8 +174,8 @@ public sealed partial class ViewManager : Node3D
     };
 
     /// <summary>
-    /// Gebaeude als Quader. Baustellen wachsen sichtbar in drei Stufen — erst ein
-    /// flaches Fundament, dann der Rohbau, dann das fertige Haus.
+    /// Buildings as boxes. Construction sites grow visibly in three stages — first a
+    /// flat foundation, then the shell, then the finished house.
     /// </summary>
     private Node3D BuildBuildingPlaceholder(Building building)
     {
@@ -204,7 +204,7 @@ public sealed partial class ViewManager : Node3D
 
     private static Node3D BuildResourcePlaceholder(ResourceNode node)
     {
-        // Der Baum schrumpft sichtbar, waehrend er abgeholzt wird.
+        // The tree shrinks visibly as it is felled.
         float wear = Mathf.Lerp(0.45f, 1f, node.RemainingFraction);
 
         (Mesh mesh, Color color, float lift) = node.Resource switch
@@ -248,7 +248,7 @@ public sealed partial class ViewManager : Node3D
             MaterialOverride = GetPlayerMaterial(entity.OwnerId),
         };
 
-        // Kleiner Keil als Blickrichtungsmarkierung, solange es keine Animation gibt.
+        // A small wedge marks the facing while there is no animation.
         instance.AddChild(new MeshInstance3D
         {
             Name = "Facing",
@@ -295,8 +295,8 @@ public sealed partial class ViewManager : Node3D
     };
 
     /// <summary>
-    /// Ein Material pro Spieler, geteilt ueber alle seine Entities — spart Draw-Call-Zustandswechsel
-    /// und nimmt die Fraktionsfarbe schon jetzt vorweg.
+    /// One material per player, shared across all their entities — it saves draw call
+    /// state changes and brings the faction colour forward already.
     /// </summary>
     private StandardMaterial3D GetPlayerMaterial(int ownerId)
     {

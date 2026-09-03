@@ -5,16 +5,16 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Core.Systems;
 
 /// <summary>
-/// Laesst Geschosse fliegen und richtet beim Aufschlag Schaden an.
+/// Makes projectiles fly and applies damage on impact.
 /// </summary>
 /// <remarks>
-/// Der Schaden faellt bewusst erst beim Einschlag an, nicht beim Abschuss. Sonst
-/// stirbt das Ziel, bevor der Pfeil es erreicht — was den Fernkampf gegenueber dem
-/// Nahkampf unfair macht und schlicht falsch aussieht.
+/// The damage deliberately lands on impact, not on release. Otherwise the target
+/// dies before the arrow reaches it — which makes ranged unfair against melee and
+/// simply looks wrong.
 /// </remarks>
 public sealed class ProjectileSystem : ISimulationSystem
 {
-    /// <summary>Abstand, ab dem der Einschlag gilt.</summary>
+    /// <summary>Distance at which the impact counts.</summary>
     private const float HitRadius = 0.5f;
 
     public string Name => "Projectiles";
@@ -27,8 +27,8 @@ public sealed class ProjectileSystem : ISimulationSystem
         {
             Projectile projectile = world.Projectiles[i];
 
-            // Zielt weiterhin auf das Ziel, solange es lebt — sonst auf die
-            // zuletzt bekannte Stelle, damit das Geschoss nicht in der Luft verharrt.
+            // Keep aiming at the target while it lives — otherwise at the last known
+            // position, so the projectile does not hang in mid-air.
             Entity? target = world.Entities.Get(projectile.TargetId);
             if (target is not null && target.IsAlive) projectile.TargetPosition = target.Position;
 

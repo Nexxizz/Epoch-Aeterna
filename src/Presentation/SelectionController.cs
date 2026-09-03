@@ -7,22 +7,22 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Maussteuerung: Einheiten auswaehlen und ihnen Befehle geben.
+/// Mouse control: selecting units and giving them orders.
 /// </summary>
 /// <remarks>
-/// Die Trefferpruefung laeuft rein rechnerisch ueber Strahl-Kugel-Schnitte und
-/// Projektion in den Bildschirmraum — bewusst ohne Physik-Koerper. Fuer eine RTS mit
-/// hunderten Einheiten waeren Kollisionsformen, die nur zum Anklicken existieren,
-/// verschwendete Rechenzeit.
+/// Hit testing is purely arithmetic, via ray-sphere intersection and projection into
+/// screen space — deliberately without physics bodies. In an RTS with hundreds of
+/// units, collision shapes that exist only to be clicked would be
+/// wasted computation.
 ///
-/// Ausgegeben wird ausschliesslich ueber die Befehlsqueue, genau wie bei der KI.
+/// Everything is issued through the command queue, exactly as the AI does it.
 /// </remarks>
 public sealed partial class SelectionController : Node
 {
-    /// <summary>Ab dieser Ziehstrecke in Pixeln gilt es als Rahmenauswahl statt als Klick.</summary>
+    /// <summary>Beyond this drag distance in pixels it counts as a box selection rather than a click.</summary>
     private const float DragThreshold = 8f;
 
-    /// <summary>Grosszuegigkeit beim Einzelklick: Einheiten sind klein, der Cursor ungenau.</summary>
+    /// <summary>Generosity on a single click: units are small and the cursor is imprecise.</summary>
     private const float PickPadding = 0.45f;
 
     private static readonly Color MoveMarker = new(0.4f, 1f, 0.5f);
@@ -67,7 +67,7 @@ public sealed partial class SelectionController : Node
 
     public void SetPlacement(BuildPlacementController placement) => _placement = placement;
 
-    /// <summary>Die ausgewaehlten Einheiten, die bauen koennen — fuer den Bauauftrag.</summary>
+    /// <summary>The selected units that can build — for the build order.</summary>
     public EntityId[] SelectedBuilders()
     {
         var builders = new List<EntityId>();
@@ -79,7 +79,7 @@ public sealed partial class SelectionController : Node
         return builders.ToArray();
     }
 
-    /// <summary>Das erste ausgewaehlte eigene Gebaeude — Ziel fuer Ausbildung und Aufstieg.</summary>
+    /// <summary>The first selected building you own — the target for training and advancing.</summary>
     public Building? SelectedBuilding()
     {
         foreach (EntityId id in _selection)
@@ -99,7 +99,7 @@ public sealed partial class SelectionController : Node
         switch (@event)
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } press:
-                // Im Bauplatzierungs-Modus setzt der Linksklick die Baustelle.
+                // In building placement mode the left click places the site.
                 if (_placement is { IsPlacing: true } && _placement.TryPlace(press.ShiftPressed)) return;
                 BeginDrag(press.Position);
                 break;
@@ -132,7 +132,7 @@ public sealed partial class SelectionController : Node
         }
     }
 
-    // --- Auswahl ---------------------------------------------------------
+    // --- Selection -------------------------------------------------------
 
     private void BeginDrag(Vector2 position)
     {
@@ -162,7 +162,7 @@ public sealed partial class SelectionController : Node
         RaiseChanged();
     }
 
-    /// <summary>Einzelklick: naechste eigene Entity entlang des Mausstrahls.</summary>
+    /// <summary>Single click: nearest entity of your own along the mouse ray.</summary>
     private void SelectAt(Vector2 screenPosition, bool additive)
     {
         Entity? best = PickEntity(screenPosition, ownedOnly: true);
@@ -172,13 +172,13 @@ public sealed partial class SelectionController : Node
         else Select(best.Id);
     }
 
-    /// <summary>Rahmenauswahl: alles, dessen Bildschirmposition im Rechteck liegt.</summary>
+    /// <summary>Box selection: everything whose screen position lies inside the rectangle.</summary>
     private void SelectInRect(Rect2 rect)
     {
         if (_world is null || _camera is null) return;
 
-        // Militaer hat Vorrang: Wer eine Armee einrahmt, will nicht die Siedler
-        // mitschicken, die zufaellig danebenstehen.
+        // Military takes precedence: whoever boxes an army does not want to send along
+        // the settlers who happen to be standing nearby.
         var military = new List<EntityId>();
         var civilian = new List<EntityId>();
 
@@ -197,7 +197,7 @@ public sealed partial class SelectionController : Node
         foreach (EntityId id in military.Count > 0 ? military : civilian) Select(id);
     }
 
-    /// <summary>Doppelklick: alle sichtbaren Einheiten desselben Typs.</summary>
+    /// <summary>Double click: every visible unit of the same type.</summary>
     private void SelectSameTypeOnScreen(Vector2 screenPosition)
     {
         if (_world is null || _camera is null) return;
@@ -247,11 +247,11 @@ public sealed partial class SelectionController : Node
 
     private void RaiseChanged() => SelectionChanged?.Invoke();
 
-    // --- Befehle ---------------------------------------------------------
+    // --- Orders ----------------------------------------------------------
 
     /// <summary>
     /// Rechtsklick. Was passiert, haengt davon ab, worauf geklickt wurde:
-    /// Gegner angreifen, Vorkommen abbauen, eigene Baustelle bauen, sonst hinlaufen.
+    /// attack an enemy, harvest a deposit, build your own site, otherwise walk there.
     /// </summary>
     private void IssueContextCommand(Vector2 screenPosition, bool queued)
     {
@@ -334,7 +334,7 @@ public sealed partial class SelectionController : Node
         else RecallControlGroup(group);
     }
 
-    /// <summary>Angriffsbewegung auf die aktuelle Mausposition.</summary>
+    /// <summary>Attack move to the current mouse position.</summary>
     private void BeginAttackMove()
     {
         if (_world is null || _camera is null || _selection.Count == 0) return;
@@ -383,9 +383,9 @@ public sealed partial class SelectionController : Node
         _ => -1,
     };
 
-    // --- Geometrie -------------------------------------------------------
+    // --- Geometry --------------------------------------------------------
 
-    /// <summary>Naechste Entity entlang des Mausstrahls.</summary>
+    /// <summary>Nearest entity along the mouse ray.</summary>
     private Entity? PickEntity(Vector2 screenPosition, bool ownedOnly)
     {
         if (_world is null || _camera is null) return null;

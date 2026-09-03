@@ -5,15 +5,15 @@ using EpochAeterna.Core.Pathfinding;
 namespace EpochAeterna.Core.Map;
 
 /// <summary>
-/// Erzeugt die Testkarte "Ebene der Anfaenge" aus einem Seed.
+/// Generates the test map "Plain of Beginnings" from a seed.
 /// </summary>
 /// <remarks>
-/// Alles ist aus dem Seed abgeleitet: Gleiche Zahl, gleiche Karte. Das haelt
-/// Selbsttests reproduzierbar und ist die Voraussetzung dafuer, dass spaeter im
-/// Multiplayer alle Teilnehmer dieselbe Karte erzeugen, statt sie zu uebertragen.
+/// Everything derives from the seed: same number, same map. That keeps
+/// self-tests reproducible and is the precondition for every participant in a
+/// later multiplayer match generating the same map instead of transferring it.
 ///
-/// Der Generator legt nur Plaetze fest. Die eigentlichen Vorkommen entstehen im
-/// Matchaufbau aus den Definitionen — die Karte muss die Spielwerte nicht kennen.
+/// The generator only fixes positions. The deposits themselves are created during
+/// match setup from the definitions — the map need not know any game values.
 /// </remarks>
 public static class MapGenerator
 {
@@ -22,10 +22,10 @@ public static class MapGenerator
     public const string GoldId = "res_gold";
     public const string BerryId = "res_berries";
 
-    /// <summary>Ab diesem Hoehenunterschied innerhalb einer Kachel gilt sie als unbegehbar.</summary>
+    /// <summary>Above this height difference within a tile, it counts as impassable.</summary>
     private const float MaxWalkableSlope = 2.2f;
 
-    /// <summary>Radius um eine Startbasis, der frei von Hindernissen bleibt, in Metern.</summary>
+    /// <summary>Radius around a starting base kept free of obstacles, in metres.</summary>
     private const float StartClearRadius = 18f;
 
     public static GeneratedMap Generate(ulong seed, int width = 128, int height = 128)
@@ -51,8 +51,8 @@ public static class MapGenerator
     }
 
     /// <summary>
-    /// Sanfte Huegellandschaft aus zwei ueberlagerten Rauschfeldern: eine grosse Welle
-    /// fuer die Grundform, eine feine fuer Unebenheiten.
+    /// Gentle hills from two layered noise fields: one broad wave for the overall
+    /// shape, one fine one for unevenness.
     /// </summary>
     private static void BuildHeights(NavGrid grid, ulong seed)
     {
@@ -79,8 +79,8 @@ public static class MapGenerator
 
                 float value = broad.GetNoise2D(wx, wy) * 6.5f + detail.GetNoise2D(wx, wy) * 1.1f;
 
-                // Raender leicht anheben, damit die Karte wie eine Senke wirkt und
-                // der Blick nicht ins Leere laeuft.
+                // Raise the edges slightly so the map reads as a basin and
+                // the view does not run off into nothing.
                 value += EdgeFalloff(grid, x, y) * 5f;
 
                 grid.SetCornerHeight(x, y, value);
@@ -88,7 +88,7 @@ public static class MapGenerator
         }
     }
 
-    /// <summary>0 in der Kartenmitte, 1 am Rand — quadratisch ansteigend.</summary>
+    /// <summary>0 at the map centre, 1 at the edge — rising quadratically.</summary>
     private static float EdgeFalloff(NavGrid grid, int x, int y)
     {
         float nx = Mathf.Abs(x / (float)grid.Width * 2f - 1f);
@@ -108,7 +108,7 @@ public static class MapGenerator
         }
     }
 
-    /// <summary>Zwei gegenueberliegende Startplaetze auf der flachsten Stelle ihrer Kartenhaelfte.</summary>
+    /// <summary>Two opposing starting positions on the flattest spot of their map half.</summary>
     private static List<Vector2> ChooseStartPositions(NavGrid grid)
     {
         var positions = new List<Vector2>
@@ -137,8 +137,8 @@ public static class MapGenerator
                 int y = centre.Y + dy;
                 if (!grid.InBounds(x, y)) continue;
 
-                // Steilheit der naeheren Umgebung, nicht nur der einzelnen Kachel —
-                // ein Rathaus braucht eine flache Flaeche, keinen flachen Punkt.
+                // Steepness of the surroundings, not of the single tile —
+                // a town centre needs a flat area, not a flat point.
                 float slope = 0f;
                 for (int oy = -2; oy <= 2; oy++)
                 {
@@ -170,11 +170,11 @@ public static class MapGenerator
     }
 
     /// <summary>
-    /// Verteilt Wald, Steinbrueche, Goldadern und Beerenbueschen.
+    /// Scatters forest, quarries, gold veins and berry bushes.
     /// </summary>
     /// <remarks>
-    /// Jede Basis bekommt garantiert Holz, Nahrung, Stein und Gold in Reichweite.
-    /// Ohne diese Zusicherung entscheidet der Zufall die Partie, bevor sie beginnt.
+    /// Every base is guaranteed wood, food, stone and gold within reach.
+    /// Without that guarantee chance decides the match before it starts.
     /// </remarks>
     private static List<ResourceSpot> ScatterResources(NavGrid grid, ulong seed,
         RandomNumberGenerator random, List<Vector2> startPositions)
@@ -188,7 +188,7 @@ public static class MapGenerator
             Frequency = 0.022f,
         };
 
-        // Startnahe Grundausstattung: ein Waeldchen, Beeren, Stein und Gold je Basis.
+        // Guaranteed supply near the start: a copse, berries, stone and gold per base.
         foreach (Vector2 start in startPositions)
         {
             AddCluster(spots, grid, random, start, TreeId, count: 14, minRadius: 12f, maxRadius: 20f);
@@ -197,7 +197,7 @@ public static class MapGenerator
             AddCluster(spots, grid, random, start, GoldId, count: 4, minRadius: 16f, maxRadius: 24f);
         }
 
-        // Der Rest der Karte: Waldstuecke nach Rauschen, Fels an steilen Stellen.
+        // The rest of the map: forest patches from noise, rock on steep ground.
         for (int y = 0; y < grid.Height; y++)
         {
             for (int x = 0; x < grid.Width; x++)
@@ -226,11 +226,11 @@ public static class MapGenerator
         return spots;
     }
 
-    /// <summary>Setzt eine Gruppe eines Vorkommens in einem Ring um einen Mittelpunkt.</summary>
+    /// <summary>Places a cluster of one deposit type in a ring around a centre point.</summary>
     private static void AddCluster(List<ResourceSpot> spots, NavGrid grid, RandomNumberGenerator random,
         Vector2 centre, string id, int count, float minRadius, float maxRadius)
     {
-        // Ein zufaelliger Startwinkel, damit die Gruppen nicht bei allen Basen gleich liegen.
+        // A random starting angle, so the clusters do not sit identically at every base.
         float baseAngle = random.RandfRange(0f, Mathf.Tau);
 
         for (int i = 0; i < count; i++)
@@ -250,7 +250,7 @@ public static class MapGenerator
     private static void Place(List<ResourceSpot> spots, NavGrid grid, RandomNumberGenerator random,
         Vector2 world, string id)
     {
-        // Innerhalb der Kachel leicht versetzen, damit kein Rastermuster entsteht.
+        // Offset slightly within the tile so no grid pattern emerges.
         var jitter = new Vector2(random.RandfRange(-0.5f, 0.5f), random.RandfRange(-0.5f, 0.5f));
 
         spots.Add(new ResourceSpot
@@ -261,13 +261,13 @@ public static class MapGenerator
             Scale = random.RandfRange(0.85f, 1.2f),
         });
 
-        // Vorbelegen, damit dieselbe Kachel nicht doppelt bestueckt wird. Ob das
-        // Vorkommen die Kachel wirklich sperrt, entscheidet spaeter seine Definition.
+        // Claim the tile so it is not populated twice. Whether the deposit really
+        // blocks the tile is decided later by its definition.
         Vector2I cell = grid.WorldToCell(world);
         grid.Block(cell.X, cell.Y, BlockFlags.Decoration);
     }
 
-    /// <summary>Grasbueschel und lose Steine — reine Optik, ohne Sperrwirkung.</summary>
+    /// <summary>Grass tufts and loose stones — purely visual, with no blocking effect.</summary>
     private static List<Decoration> ScatterDecorations(NavGrid grid, RandomNumberGenerator random)
     {
         var decorations = new List<Decoration>();

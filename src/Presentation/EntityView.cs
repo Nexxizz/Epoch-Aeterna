@@ -5,12 +5,12 @@ using EpochAeterna.Core.Pathfinding;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Sichtbare Darstellung einer Entity. Haelt eine Referenz auf das Simulationsobjekt,
-/// schreibt es aber niemals — die Datenrichtung ist strikt Sim → View.
+/// Visible representation of an entity. Holds a reference to the simulation object
+/// but never writes it — the data flows strictly from sim to view.
 /// </summary>
 public sealed partial class EntityView : Node3D
 {
-    /// <summary>Ab diesem Schaden wird der Lebensbalken eingeblendet.</summary>
+    /// <summary>Above this much damage the health bar is shown.</summary>
     private const float HealthBarThreshold = 0.995f;
 
     private Entity? _entity;
@@ -39,7 +39,7 @@ public sealed partial class EntityView : Node3D
         SyncTransform(1f);
     }
 
-    /// <summary>Tauscht das Modell aus — fuer Baustufen und Zeitalter-Varianten.</summary>
+    /// <summary>Swaps the model — used for construction stages and age variants.</summary>
     public void ReplaceModel(Node3D model, RandomNumberGenerator random)
     {
         _model?.QueueFree();
@@ -70,7 +70,7 @@ public sealed partial class EntityView : Node3D
         Rotation = new Vector3(0f, LerpAngle(_entity.PreviousRotation, _entity.Rotation, alpha), 0f);
     }
 
-    // --- Lebensbalken ----------------------------------------------------
+    // --- Health bar ------------------------------------------------------
 
     private void SyncHealthBar()
     {
@@ -78,7 +78,7 @@ public sealed partial class EntityView : Node3D
 
         float fraction = _entity.HealthFraction;
 
-        // Baustellen zeigen den Baufortschritt statt der Lebenspunkte.
+        // Construction sites show build progress instead of health.
         bool underConstruction = _entity is Building { IsUnderConstruction: true };
         if (underConstruction) fraction = ((Building)_entity).ConstructionProgress;
 
@@ -106,9 +106,9 @@ public sealed partial class EntityView : Node3D
         return bar;
     }
 
-    // --- Auswahlring ------------------------------------------------------
+    // --- Selection ring ---------------------------------------------------
 
-    /// <summary>Blendet den Auswahlring ein oder aus; er wird beim ersten Mal erzeugt.</summary>
+    /// <summary>Shows or hides the selection ring; it is created on first use.</summary>
     public void SetSelected(bool selected)
     {
         if (!selected)
@@ -140,14 +140,14 @@ public sealed partial class EntityView : Node3D
                 RingSegments = 24,
                 Rings = 4,
             },
-            // Knapp ueber dem Boden, damit der Ring nicht mit dem Gelaende flimmert.
+            // Just above the ground, so the ring does not z-fight with the terrain.
             Position = new Vector3(0f, 0.12f, 0f),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             MaterialOverride = new StandardMaterial3D
             {
                 AlbedoColor = new Color(0.35f, 1f, 0.45f),
                 ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                // Immer sichtbar, auch wenn die Einheit hinter einem Huegel steht.
+                // Always visible, even when the unit stands behind a hill.
                 NoDepthTest = true,
                 RenderPriority = 1,
             },
@@ -157,7 +157,7 @@ public sealed partial class EntityView : Node3D
         return ring;
     }
 
-    /// <summary>Winkelinterpolation ueber den kuerzeren Weg, damit es bei ±PI nicht springt.</summary>
+    /// <summary>Angle interpolation along the shorter way, so it does not jump at ±PI.</summary>
     private static float LerpAngle(float from, float to, float weight)
     {
         float difference = Mathf.Wrap(to - from, -Mathf.Pi, Mathf.Pi);

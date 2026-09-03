@@ -3,27 +3,27 @@ using EpochAeterna.Core.Pathfinding;
 
 namespace EpochAeterna.Core.Map;
 
-/// <summary>Was ein Spieler von einer Kachel weiss.</summary>
+/// <summary>What a player knows about a tile.</summary>
 public enum Visibility : byte
 {
-    /// <summary>Nie gesehen — komplett schwarz.</summary>
+    /// <summary>Never seen — completely black.</summary>
     Unexplored = 0,
 
-    /// <summary>Schon einmal gesehen, aktuell aber niemand in der Naehe — abgedunkelt.</summary>
+    /// <summary>Seen at some point, but nobody nearby right now — dimmed.</summary>
     Explored = 1,
 
-    /// <summary>Gerade im Blickfeld einer eigenen Entity.</summary>
+    /// <summary>Currently in sight of one of your own entities.</summary>
     Visible = 2,
 }
 
 /// <summary>
-/// Der Nebel des Krieges fuer genau einen Spieler.
+/// The fog of war for exactly one player.
 /// </summary>
 /// <remarks>
-/// Zwei getrennte Ebenen: <see cref="Visibility.Explored"/> wird nie zurueckgesetzt —
-/// einmal Gesehenes bleibt auf der Karte —, waehrend die Sichtbarkeit bei jeder
-/// Neuberechnung von vorn beginnt. Daraus ergibt sich von selbst das erwartete
-/// Verhalten, dass verlassene Gegnergebaeude als Erinnerung stehen bleiben.
+/// Two separate layers: <see cref="Visibility.Explored"/> is never reset —
+/// what has been seen stays on the map — while visibility starts from scratch on
+/// every rebuild. The expected behaviour follows from that on its own: abandoned
+/// enemy buildings stay standing as a memory.
 /// </remarks>
 public sealed class VisionGrid
 {
@@ -32,7 +32,7 @@ public sealed class VisionGrid
     public int Width { get; }
     public int Height { get; }
 
-    /// <summary>Zaehlt hoch, sobald sich etwas geaendert hat — die Darstellung spart sich sonst das Hochladen.</summary>
+    /// <summary>Increments whenever something changed — otherwise the view would upload needlessly.</summary>
     public int Revision { get; private set; }
 
     public VisionGrid(int width, int height)
@@ -55,7 +55,7 @@ public sealed class VisionGrid
         return IsVisible(cell.X, cell.Y);
     }
 
-    /// <summary>Stuft alle sichtbaren Kacheln auf "erkundet" zurueck, vor dem neuen Aufbau.</summary>
+    /// <summary>Demotes every visible tile back to "explored", before the new build-up.</summary>
     public void BeginRebuild()
     {
         for (int i = 0; i < _cells.Length; i++)
@@ -64,7 +64,7 @@ public sealed class VisionGrid
         }
     }
 
-    /// <summary>Deckt einen Kreis um eine Entity auf.</summary>
+    /// <summary>Reveals a circle around an entity.</summary>
     public void Reveal(NavGrid grid, Vector2 world, float radiusMeters)
     {
         Vector2I centre = grid.WorldToCell(world);
@@ -90,7 +90,7 @@ public sealed class VisionGrid
 
     public void EndRebuild() => Revision++;
 
-    /// <summary>Deckt die ganze Karte auf — fuer Debug und spaeter fuer Zuschauer.</summary>
+    /// <summary>Reveals the whole map — for debugging and later for spectators.</summary>
     public void RevealAll()
     {
         for (int i = 0; i < _cells.Length; i++) _cells[i] = Visibility.Visible;

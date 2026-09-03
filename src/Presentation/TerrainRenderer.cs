@@ -4,14 +4,14 @@ using EpochAeterna.Core.Pathfinding;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Baut den sichtbaren Gelaende-Mesh aus den Hoehen des <see cref="NavGrid"/>.
+/// Builds the visible terrain mesh from the heights of the <see cref="NavGrid"/>.
 /// </summary>
 /// <remarks>
-/// Optik und Begehbarkeit stammen aus derselben Quelle — ein Hang, der im Bild steil
-/// aussieht, ist auch fuer die Wegfindung steil.
+/// Looks and walkability come from the same source — a slope that looks steep in the
+/// image is steep for pathfinding too.
 ///
-/// Der Mesh wird in Kacheln von 16x16 Zellen zerlegt, damit Godot ausserhalb des
-/// Sichtfelds ganze Bloecke verwerfen kann, statt eine einzige riesige Flaeche zu zeichnen.
+/// The mesh is split into chunks of 16x16 cells, so Godot can discard whole blocks
+/// outside the view instead of drawing one enormous surface.
 /// </remarks>
 public sealed partial class TerrainRenderer : Node3D
 {
@@ -19,7 +19,7 @@ public sealed partial class TerrainRenderer : Node3D
 
     private static readonly string ShaderPath = "res://assets/shaders/terrain.gdshader";
 
-    /// <summary>Das Gelaende-Material. Der Nebel des Krieges haengt seine Textur hier ein.</summary>
+    /// <summary>The terrain material. The fog of war hooks its texture in here.</summary>
     public ShaderMaterial? Material { get; private set; }
 
     public void Build(NavGrid grid)
@@ -76,7 +76,7 @@ public sealed partial class TerrainRenderer : Node3D
 
                 normals[index] = CornerNormal(grid, gx, gy);
 
-                // UV ueber die gesamte Karte, damit die Splat-Map ueber alle Bloecke passt.
+                // UV across the whole map, so the splat map lines up across all chunks.
                 uvs[index] = new Vector2(gx / (float)grid.Width, gy / (float)grid.Height);
             }
         }
@@ -93,9 +93,9 @@ public sealed partial class TerrainRenderer : Node3D
                 int bottomLeft = topLeft + verticesX;
                 int bottomRight = bottomLeft + 1;
 
-                // Godot erwartet die Vorderseite im Uhrzeigersinn. Bei umgekehrter
-                // Reihenfolge verschwindet das Gelaende komplett, weil es als
-                // Rueckseite weggeworfen wird.
+                // Godot expects the front face wound clockwise. With the reverse order the
+                // terrain disappears entirely, because it gets discarded as a back
+                // face.
                 indices[write++] = topLeft;
                 indices[write++] = topRight;
                 indices[write++] = bottomLeft;
@@ -118,7 +118,7 @@ public sealed partial class TerrainRenderer : Node3D
         return mesh;
     }
 
-    /// <summary>Normale aus dem Hoehengefaelle der Nachbarecken (zentrale Differenz).</summary>
+    /// <summary>Normal from the height gradient of the neighbouring corners (central difference).</summary>
     private static Vector3 CornerNormal(NavGrid grid, int x, int y)
     {
         float left = grid.GetCornerHeight(x - 1, y);
@@ -140,8 +140,8 @@ public sealed partial class TerrainRenderer : Node3D
     }
 
     /// <summary>
-    /// Erzeugt die Gewichtstextur: Hoehe und Steilheit entscheiden, welcher Untergrund
-    /// wo durchkommt. Flach und tief wird Gras, steil wird Fels, dazwischen Erde.
+    /// Builds the weight texture: height and steepness decide which ground shows
+    /// through where. Flat and low becomes grass, steep becomes rock, dirt in between.
     /// </summary>
     private static Image BuildSplatMap(NavGrid grid)
     {
@@ -157,9 +157,9 @@ public sealed partial class TerrainRenderer : Node3D
                 float rock = Mathf.Clamp((slope - 0.9f) / 1.6f, 0f, 1f);
                 float dirt = Mathf.Clamp((slope - 0.45f) / 1.2f, 0f, 1f) * (1f - rock);
 
-                // Sand nur in den tiefsten Senken. Die Hoehen schwanken um null,
-                // daher muss die Schwelle deutlich unter dem Mittel liegen — sonst
-                // waere die halbe Karte Sandflaeche.
+                // Sand only in the deepest hollows. The heights vary around zero, so the
+                // threshold has to sit well below the mean — otherwise half the map would
+                // be sand.
                 float sand = Mathf.Clamp((-7f - height) / 2f, 0f, 1f) * (1f - rock - dirt);
 
                 float grass = Mathf.Max(0f, 1f - rock - dirt - sand);

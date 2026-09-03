@@ -2,7 +2,7 @@ using EpochAeterna.Core.Data;
 
 namespace EpochAeterna.Core.Entities;
 
-/// <summary>Was ein Spieler im Lauf der Partie zustande gebracht hat — fuer den Endbildschirm.</summary>
+/// <summary>What a player achieved over the match — for the end screen.</summary>
 public sealed class MatchStats
 {
     private readonly int[] _gathered = new int[ResourceTypes.Count];

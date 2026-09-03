@@ -5,7 +5,7 @@ using EpochAeterna.Core.Pathfinding;
 
 namespace EpochAeterna.Core.Entities;
 
-/// <summary>Was eine Einheit gerade tut. Systeme lesen das, Befehle schreiben es.</summary>
+/// <summary>What a unit is currently doing. Systems read it, commands write it.</summary>
 public enum UnitOrder
 {
     Idle,
@@ -14,11 +14,11 @@ public enum UnitOrder
     Build,
     Attack,
 
-    /// <summary>Laeuft zum Ziel und greift alles an, was unterwegs in Reichweite kommt.</summary>
+    /// <summary>Walks to the target and attacks anything that comes into range on the way.</summary>
     AttackMove,
 }
 
-/// <summary>Abschnitt des Sammelkreislaufs.</summary>
+/// <summary>Stage of the gathering cycle.</summary>
 public enum GatherPhase
 {
     ToNode,
@@ -26,37 +26,37 @@ public enum GatherPhase
     ToDropOff,
 }
 
-/// <summary>Wie selbstaendig eine Einheit auf Feinde reagiert.</summary>
+/// <summary>How independently a unit reacts to enemies.</summary>
 public enum Stance
 {
     /// <summary>Verfolgt Feinde in Sichtweite.</summary>
     Aggressive,
 
-    /// <summary>Wehrt sich, bleibt aber am Platz.</summary>
+    /// <summary>Fights back but holds its ground.</summary>
     Defensive,
 
-    /// <summary>Greift nur an, was in Reichweite steht, und weicht keinen Schritt.</summary>
+    /// <summary>Only attacks what is already in range, and does not move a step.</summary>
     HoldPosition,
 }
 
-/// <summary>Bewegliche Einheit.</summary>
+/// <summary>A mobile unit.</summary>
 public sealed class Unit : Entity
 {
     public UnitOrder Order { get; set; } = UnitOrder.Idle;
     public Stance Stance { get; set; } = Stance.Aggressive;
 
-    /// <summary>Endziel der aktuellen Bewegung.</summary>
+    /// <summary>Final destination of the current movement.</summary>
     public Vector2 MoveTarget { get; private set; }
 
-    /// <summary>Geglaettete Wegpunkte vom Pathfinder. Leer, solange die Suche laeuft.</summary>
+    /// <summary>Smoothed waypoints from the pathfinder. Empty while the search is running.</summary>
     public List<Vector2> Path { get; } = new();
 
     public int PathIndex { get; set; }
 
-    /// <summary>Der Pfad ist angefordert, aber noch nicht berechnet.</summary>
+    /// <summary>A path has been requested but not computed yet.</summary>
     public bool NeedsPath { get; set; }
 
-    /// <summary>Mit Shift angehaengte Folgeziele. Werden nach Ankunft der Reihe nach abgearbeitet.</summary>
+    /// <summary>Follow-up targets queued with Shift. Worked through in order after arrival.</summary>
     public Queue<Vector2> QueuedTargets { get; } = new();
 
     public float MoveSpeed { get; set; } = 3f;
@@ -64,7 +64,7 @@ public sealed class Unit : Entity
     public float Radius { get; set; } = 0.4f;
     public int PopulationCost { get; set; } = 1;
 
-    // --- Kampf -----------------------------------------------------------
+    // --- Combat ----------------------------------------------------------
 
     public float AttackDamage { get; set; }
     public float AttackRange { get; set; } = 1f;
@@ -77,13 +77,13 @@ public sealed class Unit : Entity
     public bool AutoEngages { get; set; } = true;
     public float Armor { get; set; }
 
-    /// <summary>Aktuelles Angriffsziel. Ungueltig, sobald das Ziel stirbt.</summary>
+    /// <summary>Current attack target. Invalid as soon as the target dies.</summary>
     public EntityId AttackTarget { get; set; } = EntityId.None;
 
-    /// <summary>Wohin die Einheit nach einem beendeten Gefecht zurueckkehrt (Defensive).</summary>
+    /// <summary>Where the unit returns to after a fight ends (Defensive stance).</summary>
     public Vector2 GuardPosition { get; set; }
 
-    // --- Arbeit ----------------------------------------------------------
+    // --- Work ------------------------------------------------------------
 
     public bool CanGather { get; set; }
     public bool CanBuild { get; set; }
@@ -94,16 +94,16 @@ public sealed class Unit : Entity
     public EntityId GatherTarget { get; set; } = EntityId.None;
     public EntityId DropOffTarget { get; set; } = EntityId.None;
 
-    /// <summary>Baustelle, an der die Einheit arbeitet.</summary>
+    /// <summary>The construction site the unit is working on.</summary>
     public EntityId BuildTarget { get; set; } = EntityId.None;
 
     public ResourceType CarriedResource { get; set; } = ResourceType.Wood;
     public float CarriedAmount { get; set; }
 
-    /// <summary>Bruchteil einer Einheit Ressource, der noch nicht als ganze Zahl abgebaut wurde.</summary>
+    /// <summary>Fraction of a resource unit not yet extracted as a whole number.</summary>
     public float HarvestProgress { get; set; }
 
-    /// <summary>Benoetigter Freiraum in Kacheln. Alle MVP-Einheiten passen in eine.</summary>
+    /// <summary>Clearance needed in tiles. Every MVP unit fits into one.</summary>
     public int Clearance => Mathf.Max(1, Mathf.CeilToInt(Radius * 2f / NavGrid.CellSize));
 
     public bool HasPath => PathIndex < Path.Count;
@@ -138,9 +138,9 @@ public sealed class Unit : Entity
         GuardPosition = Position;
     }
 
-    // --- Befehle ---------------------------------------------------------
+    // --- Orders ----------------------------------------------------------
 
-    /// <summary>Neuer Bewegungsbefehl. Verwirft Pfad, Warteschlange und alle Auftraege.</summary>
+    /// <summary>A new movement order. Discards path, queue and every assignment.</summary>
     public void OrderMoveTo(Vector2 target)
     {
         QueuedTargets.Clear();
@@ -180,14 +180,14 @@ public sealed class Unit : Entity
         Order = UnitOrder.Build;
     }
 
-    /// <summary>Haengt ein Folgeziel an, statt den aktuellen Befehl zu ersetzen (Shift-Klick).</summary>
+    /// <summary>Appends a follow-up target instead of replacing the current order (Shift-click).</summary>
     public void QueueMoveTo(Vector2 target)
     {
         if (Order == UnitOrder.Idle) OrderMoveTo(target);
         else QueuedTargets.Enqueue(target);
     }
 
-    /// <summary>Nimmt das naechste Ziel aus der Warteschlange. false, wenn keins mehr da ist.</summary>
+    /// <summary>Takes the next target off the queue. false when none is left.</summary>
     public bool AdvanceToQueuedTarget()
     {
         if (QueuedTargets.Count == 0) return false;
@@ -195,7 +195,7 @@ public sealed class Unit : Entity
         return true;
     }
 
-    /// <summary>Setzt nur das Bewegungsziel, ohne bestehende Auftraege zu verwerfen.</summary>
+    /// <summary>Sets only the movement target, without discarding existing assignments.</summary>
     public void StartMoveTo(Vector2 target)
     {
         MoveTarget = target;
@@ -205,7 +205,7 @@ public sealed class Unit : Entity
         NeedsPath = true;
     }
 
-    /// <summary>Uebernimmt ein Suchergebnis.</summary>
+    /// <summary>Takes on a search result.</summary>
     public void SetPath(IReadOnlyList<Vector2> waypoints)
     {
         Path.Clear();

@@ -6,21 +6,21 @@ using EpochAeterna.Core.Pathfinding;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Der Nebel des Krieges: dunkelt unerkundetes Gelaende ab und blendet aus, was der
-/// Spieler gerade nicht sieht.
+/// The fog of war: dims unexplored terrain and hides what the player cannot
+/// currently see.
 /// </summary>
 /// <remarks>
-/// Die Verdunkelung passiert im Gelaende-Shader, nicht ueber eine eigene Ebene.
-/// Eine schwebende Flaeche muesste in der Hoehe ueber jedem Huegel liegen, brauchte
-/// abgeschalteten Tiefentest und verdeckt dann alles andere gleich mit — ein
-/// Texturzugriff im ohnehin vorhandenen Shader kostet dagegen nichts.
+/// The dimming happens in the terrain shader, not through a layer of its own.
+/// A floating surface would have to sit above every hill, would need the depth
+/// test disabled, and would then cover everything else as well — whereas a
+/// texture lookup in the shader that already exists costs nothing.
 ///
-/// Gegnerische *Gebaeude* bleiben stehen, sobald sie einmal gesehen wurden: Man
-/// erinnert sich, wo die Basis lag, sieht aber nicht, was dort gerade passiert.
+/// Enemy *buildings* stay standing once they have been seen: you remember where
+/// the base was, but you do not see what is happening there right now.
 /// </remarks>
 public sealed partial class FogOfWarRenderer : Node
 {
-    /// <summary>Wie oft die Nebeltextur hochgeladen wird — deutlich seltener als die Bildrate reicht.</summary>
+    /// <summary>How often the fog texture is uploaded — far less than the frame rate suffices.</summary>
     private const float UploadInterval = 0.2f;
 
     private ImageTexture? _texture;
@@ -91,8 +91,8 @@ public sealed partial class FogOfWarRenderer : Node
     }
 
     /// <summary>
-    /// Blendet aus, was der Spieler gerade nicht sieht. Eigene Entities bleiben immer
-    /// sichtbar, gegnerische Gebaeude und Vorkommen bleiben als Erinnerung stehen.
+    /// Hides what the player cannot currently see. Your own entities always stay
+    /// visible; enemy buildings and deposits stay as a memory.
     /// </summary>
     private void HideUnseenEntities()
     {

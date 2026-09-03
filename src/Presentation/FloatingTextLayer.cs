@@ -7,20 +7,20 @@ using EpochAeterna.Core.Simulation;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Aufsteigende Zahlen bei Ressourcenlieferungen — die Rueckmeldung, dass die
-/// Wirtschaft tatsaechlich laeuft.
+/// Rising numbers on resource deliveries — the feedback that the economy is
+/// actually running.
 /// </summary>
 /// <remarks>
-/// Als 2D-Beschriftungen ueber der projizierten Weltposition, nicht als 3D-Text:
-/// So bleibt die Schrift unabhaengig von der Zoomstufe lesbar, was bei einer
-/// RTS-Kamera der ganze Sinn der Sache ist.
+/// As 2D labels over the projected world position rather than as 3D text:
+/// that keeps the type legible regardless of zoom level, which is the whole point
+/// with an RTS camera.
 /// </remarks>
 public sealed partial class FloatingTextLayer : CanvasLayer
 {
     private const float Lifetime = 1.4f;
     private const float RiseSpeed = 34f;
 
-    /// <summary>Obergrenze, damit ein Ansturm an Lieferungen die Anzeige nicht flutet.</summary>
+    /// <summary>Upper bound, so a rush of deliveries does not flood the display.</summary>
     private const int MaxActive = 40;
 
     private sealed class Entry
@@ -53,7 +53,7 @@ public sealed partial class FloatingTextLayer : CanvasLayer
 
     private void OnResourceDelivered(Unit unit, ResourceType type, int amount)
     {
-        // Nur die eigene Wirtschaft anzeigen — fremde Lieferungen gehen niemanden etwas an.
+        // Only show your own economy — other people's deliveries are nobody's business.
         if (unit.OwnerId != _localPlayerId || _world is null || _entries.Count >= MaxActive) return;
 
         var label = new Label

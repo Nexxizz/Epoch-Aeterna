@@ -3,13 +3,13 @@ using System.Collections.Generic;
 namespace EpochAeterna.Core.Simulation;
 
 /// <summary>
-/// Sammelt Befehle, die zwischen zwei Ticks eingehen, und fuehrt sie zu Beginn des
-/// naechsten Ticks aus.
+/// Collects commands that arrive between two ticks and executes them at the start
+/// of the next one.
 /// </summary>
 /// <remarks>
-/// Die Verzoegerung ist gewollt: Alle Befehle eines Ticks werden in derselben
-/// Reihenfolge auf demselben Weltzustand ausgefuehrt. Genau diese Eigenschaft
-/// braucht spaeter der Lockstep-Multiplayer.
+/// The delay is intentional: every command of a tick runs in the same order on the
+/// same world state. That property is exactly what lockstep multiplayer will need
+/// later on.
 /// </remarks>
 public sealed class CommandQueue
 {
@@ -18,7 +18,7 @@ public sealed class CommandQueue
 
     public int PendingCount => _incoming.Count;
 
-    /// <summary>Zaehler ueber die gesamte Partie — nuetzlich fuer Debug-Overlay und Replays.</summary>
+    /// <summary>Counter across the whole match — useful for the debug overlay and for replays.</summary>
     public int TotalExecuted { get; private set; }
 
     public void Enqueue(ICommand command) => _incoming.Add(command);
@@ -27,8 +27,8 @@ public sealed class CommandQueue
     {
         if (_incoming.Count == 0) return;
 
-        // Umhaengen statt direkt iterieren: Ein Befehl darf waehrend seiner
-        // Ausfuehrung neue Befehle einreihen, die dann erst im naechsten Tick laufen.
+        // Move them across rather than iterating directly: a command may queue further
+        // commands while executing, and those then run in the next tick.
         _executing.AddRange(_incoming);
         _incoming.Clear();
 

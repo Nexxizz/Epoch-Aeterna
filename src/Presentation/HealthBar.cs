@@ -3,11 +3,11 @@ using Godot;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Schwebender Balken ueber einer Entity — Lebenspunkte oder Baufortschritt.
+/// A floating bar above an entity — health or build progress.
 /// </summary>
 /// <remarks>
-/// Als billboardartige Quads statt als 3D-UI: Ein Viewport pro Einheit waere bei
-/// hunderten Einheiten unbezahlbar, zwei unbeleuchtete Rechtecke kosten fast nichts.
+/// As billboard-like quads rather than 3D UI: one viewport per unit would be
+/// unaffordable at hundreds of units, whereas two unlit rectangles cost almost nothing.
 /// </remarks>
 public sealed partial class HealthBar : Node3D
 {
@@ -30,7 +30,7 @@ public sealed partial class HealthBar : Node3D
         _fill.Mesh = new QuadMesh { Size = new Vector2(Width, Height) };
         _fill.MaterialOverride = _fillMaterial;
         _fill.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-        // Minimal davor, damit der Fuellbalken nicht mit dem Hintergrund flimmert.
+        // Minimally in front, so the fill bar does not z-fight with the background.
         _fill.Position = new Vector3(0f, 0f, 0.01f);
         AddChild(_fill);
     }
@@ -39,7 +39,7 @@ public sealed partial class HealthBar : Node3D
     {
         fraction = Mathf.Clamp(fraction, 0f, 1f);
 
-        // Von links fuellen: skalieren und um die halbe Fehlbreite verschieben.
+        // Fill from the left: scale, then shift by half the missing width.
         _fill.Scale = new Vector3(Mathf.Max(fraction, 0.001f), 1f, 1f);
         _fill.Position = new Vector3(-Width * 0.5f * (1f - fraction), 0f, 0.01f);
 
@@ -52,8 +52,8 @@ public sealed partial class HealthBar : Node3D
 
     public override void _Process(double delta)
     {
-        // Zur Kamera drehen. Billboard im Material waere billiger, wuerde aber
-        // auch die Skalierung des Fuellbalkens mitdrehen.
+        // Turn towards the camera. Billboarding in the material would be cheaper but
+        // would also rotate the fill bar's scaling with it.
         Camera3D? camera = GetViewport().GetCamera3D();
         if (camera is null) return;
 

@@ -3,17 +3,17 @@ using Godot;
 namespace EpochAeterna.Core.Data;
 
 /// <summary>
-/// Die Konter-Matrix: Schadensmultiplikator je Kombination aus Schadensart und Rüstungsklasse.
+/// The counter matrix: damage multiplier per combination of damage type and armour class.
 /// </summary>
 /// <remarks>
-/// Bewusst als Resource und nicht als Konstanten im Code — die Balance eines RTS wird
-/// im Betrieb hundertfach nachjustiert, und das soll niemanden zwingen, neu zu bauen.
+/// A Resource rather than constants in code — an RTS gets rebalanced a hundred times
+/// during development, and that should not force anyone to recompile.
 ///
-/// Die Werte liegen flach in <see cref="Multipliers"/>, zeilenweise nach Schadensart:
+/// The values sit flat in <see cref="Multipliers"/>, row by row per damage type:
 /// Index = (int)damage * 4 + (int)armor.
 ///
-/// Die Klasse steht in einer eigenen Datei, weil Godot C#-Skripte nur instanziieren
-/// kann, wenn der Dateiname exakt dem Klassennamen entspricht.
+/// The class lives in its own file because Godot can only instantiate a C# script
+/// when the file name matches the class name exactly.
 /// </remarks>
 [GlobalClass]
 public partial class CombatTable : Resource
@@ -22,7 +22,7 @@ public partial class CombatTable : Resource
     public const int DamageTypeCount = 4;
 
     /// <summary>
-    /// 16 Werte, zeilenweise: Blunt, Pierce, Ranged, Siege — je gegen
+    /// 16 values, row by row: Blunt, Pierce, Ranged, Siege — each against
     /// Civilian, Infantry, Ranged, Building.
     /// </summary>
     [Export]
@@ -35,9 +35,9 @@ public partial class CombatTable : Resource
     }
 
     /// <summary>
-    /// Notbehelf, falls keine .tres geladen wurde. Bewusst *nicht* identisch mit den
-    /// echten Balancewerten: So faellt im Selbsttest auf, wenn die Datei fehlt,
-    /// statt dass der Fallback den Ausfall verdeckt.
+    /// Stopgap for when no .tres was loaded. Deliberately *not* identical to the real
+    /// balance values: that way the self-test notices a missing file instead of the
+    /// fallback quietly covering up the failure.
     /// </summary>
     public static float[] FallbackMultipliers() => new[]
     {

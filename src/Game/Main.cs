@@ -7,8 +7,8 @@ using EpochAeterna.Presentation;
 namespace EpochAeterna.Game;
 
 /// <summary>
-/// Einstiegspunkt. Baut Definitionsdatenbank, Simulation und Darstellung zusammen
-/// und haelt sie auseinander: Der Node kennt die Welt, die Welt kennt keinen Node.
+/// Entry point. Assembles the definition database, the simulation and the display
+/// while keeping them apart: the node knows the world, the world knows no node.
 /// </summary>
 public partial class Main : Node3D
 {
@@ -26,10 +26,10 @@ public partial class Main : Node3D
 
     private SimulationWorld? World => _match?.World;
 
-    /// <summary>Der lokal gesteuerte Spieler. Ab Phase 6 aus dem Hauptmenue gesetzt.</summary>
+    /// <summary>The locally controlled player. Set from the main menu in phase 6.</summary>
     private const int LocalPlayerId = 1;
 
-    // "--shot=<pfad>" rendert einige Frames und legt ein PNG ab — fuer Sichtpruefung und CI.
+    // "--shot=<path>" renders a few frames and writes a PNG — for visual checks and CI.
     private string? _screenshotPath;
     private int _framesUntilShot;
 
@@ -69,12 +69,12 @@ public partial class Main : Node3D
         _graphics.Attach(worldEnvironment, sun);
     }
 
-    // --- Aufbau ----------------------------------------------------------
+    // --- Setup -----------------------------------------------------------
 
     private void StartMatch()
     {
-        // Alles Weltbezogene haengt unter einem Knoten, damit ein Neustart
-        // nur diesen Teilbaum wegwerfen muss.
+        // Everything world-related hangs under one node, so a restart only has to
+        // throw away that subtree.
         _worldRoot?.QueueFree();
         _worldRoot = new Node3D { Name = "World" };
         AddChild(_worldRoot);
@@ -158,7 +158,7 @@ public partial class Main : Node3D
         endScreen.RestartRequested += StartMatch;
     }
 
-    // --- Eingaben --------------------------------------------------------
+    // --- Input -----------------------------------------------------------
 
     public override void _UnhandledInput(InputEvent @event)
     {
@@ -188,13 +188,13 @@ public partial class Main : Node3D
                 JumpToOwnBase();
                 break;
 
-            // --- Ausbildung und Aufstieg ---
+            // --- Training and advancing ---
             case Key.F1: QueueUnit(MatchSetup.SettlerId); break;
             case Key.F2: QueueUnit("unit_scout"); break;
             case Key.F3: QueueUnit("unit_spearman"); break;
             case Key.F4: AdvanceAge(); break;
 
-            // --- Bauen ---
+            // --- Building ---
             case Key.B: _placement?.Begin("bld_house"); break;
             case Key.N: _placement?.Begin("bld_storehouse"); break;
             case Key.M: _placement?.Begin("bld_barracks"); break;
@@ -210,7 +210,7 @@ public partial class Main : Node3D
         }
     }
 
-    /// <summary>Reiht eine Einheit ein — im ausgewaehlten Gebaeude, sonst im Rathaus.</summary>
+    /// <summary>Queues a unit — in the selected building, otherwise in the town centre.</summary>
     private void QueueUnit(string unitDefinitionId)
     {
         if (World is null) return;
@@ -270,7 +270,7 @@ public partial class Main : Node3D
         return null;
     }
 
-    // --- Diagnose --------------------------------------------------------
+    // --- Diagnostics -----------------------------------------------------
 
     private void ReportState()
     {
@@ -290,11 +290,11 @@ public partial class Main : Node3D
             if (!argument.StartsWith("--shot=")) continue;
 
             _screenshotPath = argument["--shot=".Length..];
-            // Genug Frames, damit Schatten, SSAO und ein paar Sim-Ticks stehen.
+            // Enough frames for shadows, SSAO and a few sim ticks to settle.
             _framesUntilShot = 90;
 
-            // Edge-Scrolling wuerde die Kamera wegziehen, weil der Cursor beim
-            // automatisierten Lauf irgendwo am Rand steht.
+            // Edge scrolling would drag the camera away, because during an automated
+            // run the cursor sits somewhere near the edge.
             if (_camera is not null) _camera.EdgeScrollEnabled = false;
             return;
         }

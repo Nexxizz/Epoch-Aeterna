@@ -3,9 +3,9 @@ using System;
 namespace EpochAeterna.Core.Entities;
 
 /// <summary>
-/// Stabiler Bezeichner einer Entity. Bewusst ein Wertetyp statt einer Objektreferenz:
-/// Views, Befehle und Savegames halten IDs, keine Zeiger — eine gestorbene Entity
-/// laesst so keine haengenden Referenzen zurueck.
+/// Stable identifier of an entity. A value type rather than an object reference on purpose:
+/// views, commands and save games hold ids, not pointers — so a dead entity
+/// leaves no dangling references behind.
 /// </summary>
 public readonly struct EntityId : IEquatable<EntityId>
 {
