@@ -40,11 +40,28 @@ Spiel direkt starten, ohne Editor:
 "C:/Godot/Godot_v4.7.2-stable_mono_win64.exe" --path . scenes/Main.tscn
 ```
 
-Smoke-Test ohne Fenster (CI-tauglich, muss `Bootstrap OK` ausgeben):
+Selbsttest der Simulation ohne Fenster und ohne SceneTree (CI-tauglich, Exit-Code 0 = alles grün):
 
 ```bash
-"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --path . --quit-after 10
+"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --path . -- --verify
 ```
+
+Screenshot ohne Interaktion aufnehmen (prüft Beleuchtung und Szenenaufbau, CI-tauglich):
+
+```bash
+"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --path . -- "--shot=C:/temp/shot.png"
+```
+
+## Steuerung (Stand Phase 1)
+
+| Taste | Wirkung |
+|---|---|
+| `1` | Siedler im Rathaus ausbilden |
+| `2` | Späher im Rathaus ausbilden |
+| `Leertaste` | Pause an/aus |
+| `ESC` | Beenden |
+
+Maus-Steuerung, Kamera und Selektion kommen in Phase 2.
 
 Assets nach Änderungen neu importieren:
 

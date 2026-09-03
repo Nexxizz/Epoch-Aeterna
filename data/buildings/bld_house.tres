@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/Core/Data/BuildingDefinition.cs" id="1_def"]
+[ext_resource type="Script" path="res://src/Core/Data/ResourceSet.cs" id="2_set"]
+
+[sub_resource type="Resource" id="Resource_cost"]
+script = ExtResource("2_set")
+Food = 0
+Wood = 30
+Stone = 0
+Gold = 0
+
+[resource]
+script = ExtResource("1_def")
+Id = "bld_house"
+DisplayName = "Haus"
+Description = "Beherbergt zehn weitere Siedler."
+Cost = SubResource("Resource_cost")
+BuildTimeSeconds = 20.0
+MaxHealth = 350.0
+Armor = 1.0
+VisionRange = 8.0
+RequiredAgeIndex = 0
+Footprint = Vector2i(2, 2)
+PopulationProvided = 10
+IsDropOffPoint = false

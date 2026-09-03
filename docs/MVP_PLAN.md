@@ -90,26 +90,46 @@ EpochAeterna/
 
 ### 1.1 Simulation / Presentation-Trennung
 
-- [ ] `SimulationWorld` mit **fixem Tick** (20 Hz), getrennt vom Godot-Frame-Rendering
-- [ ] `_Process` interpoliert Views zwischen Sim-Ticks (weiche Bewegung trotz 20 Hz)
-- [ ] Alle Spielaktionen laufen über eine **Command-Queue** (`ICommand`: Move, Attack, Build, Train, Gather, SetRallyPoint) — Voraussetzung für spätere Lockstep-Multiplayer und Replays
-- [ ] `Entity`-Basis mit stabiler `EntityId` (int), zentrales `EntityRegistry`
-- [ ] `EntityView`-Basis: Godot-Node, der einer `EntityId` folgt; die Sim kennt Views nicht
-- [ ] Event-Bus (`GameEvents`) für Sim → UI / VFX / Audio (EntitySpawned, EntityDied, ResourceChanged, AgeAdvanced …)
+- [x] `SimulationWorld` mit **fixem Tick** (20 Hz), getrennt vom Godot-Frame-Rendering — `SimulationRunner` sammelt Frame-Zeit, deckelt bei 5 Ticks/Frame gegen die Todesspirale
+- [x] `_Process` interpoliert Views zwischen Sim-Ticks — jede Entity hält `PreviousPosition`/`PreviousRotation`, `EntityView` blendet mit `InterpolationAlpha`
+- [x] Alle Spielaktionen laufen über eine **Command-Queue** — implementiert: `Move`, `Stop`, `TrainUnit`, `CancelTraining`, `SetRallyPoint`
+  - [ ] `Attack`, `Build`, `Gather` folgen zusammen mit ihren Systemen in Phase 3 — bewusst noch nicht als leere Hüllen angelegt
+- [x] `Entity`-Basis mit stabiler `EntityId` (int), zentrales `EntityRegistry` (gepufferte Adds/Removes, Flush am Tick-Ende)
+- [x] `EntityView`-Basis: Godot-Node, der einer `EntityId` folgt; die Sim kennt Views nicht
+- [x] Event-Bus (`GameEvents`) für Sim → UI / VFX / Audio — `EntitySpawned`, `EntityRemoved`, `EntityDamaged`, `ProductionQueued`, `ProductionCompleted`; Ressourcen-, Bevölkerungs- und Zeitalter-Events sitzen auf `Player`
 
 ### 1.2 Data-driven Definitionen
 
-- [ ] `UnitDefinition`, `BuildingDefinition`, `ResourceDefinition`, `AgeDefinition`, `TechDefinition` als Godot-`Resource` (`.tres`) — im Editor bearbeitbar
-- [ ] Felder: Kosten, Bauzeit, HP, Rüstung, Schaden, Schadenstyp, Reichweite, Angriffsrate, Tempo, Sichtweite, Bevölkerungskosten, Grundfläche, benötigtes Zeitalter, Voraussetzungs-Gebäude, Modellpfad, Icon
-- [ ] `DefinitionDatabase` lädt alle `.tres` beim Start, Zugriff per String-ID
-- [ ] **Regel etablieren:** eine neue Einheit oder ein neues Gebäude erfordert *keinen* neuen C#-Code — nur eine neue `.tres` plus Modell
+- [x] `UnitDefinition`, `BuildingDefinition`, `AgeDefinition` als Godot-`Resource` (`.tres`), im Editor bearbeitbar
+  - Statt einer `ResourceDefinition` gibt es `ResourceType` (Enum) + `ResourceSet` (Resource) — Ressourcen brauchen keine eigenen Bauplaene, nur Mengen
+  - [ ] `TechDefinition` kommt mit dem Technologiebaum; aktuell würde sie nichts konsumieren
+- [x] Felder: Kosten, Bauzeit, HP, Rüstung, Reichweite, Angriffsrate, Tempo, Sichtweite, Bevölkerungskosten, Grundfläche, benötigtes Zeitalter, Voraussetzungs-Gebäude, Modellpfad, Icon
+  - [ ] Schadenstyp und Konter-Matrix folgen mit dem Kampfsystem (Phase 3.4)
+- [x] `DefinitionDatabase` lädt alle `.tres` rekursiv aus `res://data/`, Zugriff per String-ID, behandelt `.remap` im Export
+- [x] **Regel etabliert:** neue Einheit/neues Gebäude = neue `.tres`, kein C#-Code
 
 ### 1.3 Spieler & Ressourcen
 
-- [ ] `Player`: ID, Fraktionsfarbe, Ressourcenkonto, aktuelles Zeitalter, Bevölkerung/Limit, Team
-- [ ] Ressourcen im MVP: **Nahrung, Holz, Stein, Gold** (Datenmodell erlaubt beliebig viele → Eisen etc. später)
-- [ ] Bevölkerungslimit über Häuser, Hard-Cap 200
-- [ ] Fraktionsfarbe per Shader-Parameter auf Einheiten und Gebäuden (Team-Color-Maske im Texturkanal)
+- [x] `Player`: ID, Fraktionsfarbe, Ressourcenkonto, Zeitalter, Bevölkerung/Limit, Team
+- [x] Ressourcen im MVP: **Nahrung, Holz, Stein, Gold** — eine weitere hinzuzufügen kostet 3 Zeilen (Enum, `ResourceSet`-Feld, Indexer-Zeile)
+- [x] Bevölkerungslimit über Häuser, Hard-Cap 200 — pro Tick aus dem Entity-Bestand neu abgeleitet, kann daher nicht driften
+- [x] Fraktionsfarbe: ein geteiltes Material pro Spieler
+  - [ ] Team-Color-Maske im Texturkanal per Shader — braucht die echten Modelle, kommt mit Phase 4/5
+
+**Verifikation Phase 1** — `SelfTest.cs` spielt die Simulation ohne SceneTree durch:
+
+```bash
+"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --path . -- --verify
+```
+
+| Prüfung | Ergebnis |
+|---|---|
+| `dotnet build` | 0 Warnungen, 0 Fehler |
+| Selbsttest (30 Prüfungen) | alle bestanden, Exit-Code 0 |
+| Fenstermodus | Vulkan 1.3.260 Forward+, keine Laufzeitfehler |
+
+> Dass der Selbsttest **ohne SceneTree** läuft, ist der eigentliche Nachweis: Die Trennung
+> zwischen Simulation und Darstellung ist real und nicht nur so benannt.
 
 ---
 

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="UnitDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/Core/Data/UnitDefinition.cs" id="1_def"]
+[ext_resource type="Script" path="res://src/Core/Data/ResourceSet.cs" id="2_set"]
+
+[sub_resource type="Resource" id="Resource_cost"]
+script = ExtResource("2_set")
+Food = 50
+Wood = 0
+Stone = 0
+Gold = 0
+
+[resource]
+script = ExtResource("1_def")
+Id = "unit_settler"
+DisplayName = "Siedler"
+Description = "Sammelt Ressourcen und errichtet Gebaeude. Wehrlos im Kampf."
+Cost = SubResource("Resource_cost")
+BuildTimeSeconds = 8.0
+MaxHealth = 40.0
+Armor = 0.0
+VisionRange = 10.0
+RequiredAgeIndex = 0
+MoveSpeed = 2.6
+TurnSpeedDegrees = 540.0
+Radius = 0.35
+PopulationCost = 1
+AttackDamage = 2.0
+AttackRange = 1.0
+AttackCooldownSeconds = 2.0
+CanGather = true
+CanBuild = true
+GatherRatePerSecond = 0.55
+CarryCapacity = 10
