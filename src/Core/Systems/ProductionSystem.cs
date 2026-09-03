@@ -21,6 +21,9 @@ public sealed class ProductionSystem : ISimulationSystem
     {
         foreach (Building building in world.Entities.Buildings)
         {
+            // Eine Baustelle bildet noch niemanden aus.
+            if (building.IsUnderConstruction) continue;
+
             ProductionOrder? order = building.CurrentOrder;
             if (order is null) continue;
 
@@ -61,6 +64,8 @@ public sealed class ProductionSystem : ISimulationSystem
         // Zum Sammelpunkt schicken, sonst am Gebaeude stehen lassen.
         if (building.RallyPoint is { } rally) unit.OrderMoveTo(rally);
 
+        Player? owner = world.GetPlayer(building.OwnerId);
+        if (owner is not null) owner.Stats.UnitsTrained++;
         world.Events.RaiseProductionCompleted(building, unit);
     }
 }

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/Core/Data/BuildingDefinition.cs" id="1_def"]
+[ext_resource type="Script" path="res://src/Core/Data/ResourceSet.cs" id="2_set"]
+
+[sub_resource type="Resource" id="Resource_cost"]
+script = ExtResource("2_set")
+Food = 0
+Wood = 150
+Stone = 0
+Gold = 0
+
+[resource]
+script = ExtResource("1_def")
+Id = "bld_barracks"
+DisplayName = "Kaserne"
+Description = "Bildet Nahkampfeinheiten aus."
+BuildTimeSeconds = 40.0
+MaxHealth = 700.0
+Armor = 2.0
+VisionRange = 12.0
+RequiredAgeIndex = 0
+Footprint = Vector2i(3, 3)
+TrainableUnitIds = PackedStringArray("unit_spearman", "unit_swordsman")
+Cost = SubResource("Resource_cost")

@@ -19,9 +19,13 @@ public sealed partial class TerrainRenderer : Node3D
 
     private static readonly string ShaderPath = "res://assets/shaders/terrain.gdshader";
 
+    /// <summary>Das Gelaende-Material. Der Nebel des Krieges haengt seine Textur hier ein.</summary>
+    public ShaderMaterial? Material { get; private set; }
+
     public void Build(NavGrid grid)
     {
         ShaderMaterial material = CreateMaterial(grid);
+        Material = material;
 
         int chunksX = Mathf.CeilToInt(grid.Width / (float)ChunkCells);
         int chunksY = Mathf.CeilToInt(grid.Height / (float)ChunkCells);

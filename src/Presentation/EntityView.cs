@@ -10,26 +10,45 @@ namespace EpochAeterna.Presentation;
 /// </summary>
 public sealed partial class EntityView : Node3D
 {
+    /// <summary>Ab diesem Schaden wird der Lebensbalken eingeblendet.</summary>
+    private const float HealthBarThreshold = 0.995f;
+
     private Entity? _entity;
     private SimulationRunner? _runner;
     private NavGrid? _grid;
+
+    private Node3D? _model;
     private MeshInstance3D? _selectionRing;
+    private HealthBar? _healthBar;
 
     public EntityId EntityId => _entity?.Id ?? EntityId.None;
+
+    public Entity? Entity => _entity;
 
     public void Bind(Entity entity, SimulationRunner runner, NavGrid grid, Node3D model)
     {
         _entity = entity;
         _runner = runner;
         _grid = grid;
+        _model = model;
         AddChild(model);
         SyncTransform(1f);
+    }
+
+    /// <summary>Tauscht das Modell aus — fuer Baustufen und Zeitalter-Varianten.</summary>
+    public void ReplaceModel(Node3D model)
+    {
+        _model?.QueueFree();
+        _model = model;
+        AddChild(model);
     }
 
     public override void _Process(double delta)
     {
         if (_entity is null || _runner is null) return;
+
         SyncTransform(_runner.IsPaused ? 1f : _runner.InterpolationAlpha);
+        SyncHealthBar();
     }
 
     private void SyncTransform(float alpha)
@@ -42,6 +61,44 @@ public sealed partial class EntityView : Node3D
         Position = new Vector3(planar.X, height, planar.Y);
         Rotation = new Vector3(0f, LerpAngle(_entity.PreviousRotation, _entity.Rotation, alpha), 0f);
     }
+
+    // --- Lebensbalken ----------------------------------------------------
+
+    private void SyncHealthBar()
+    {
+        if (_entity is null) return;
+
+        float fraction = _entity.HealthFraction;
+
+        // Baustellen zeigen den Baufortschritt statt der Lebenspunkte.
+        bool underConstruction = _entity is Building { IsUnderConstruction: true };
+        if (underConstruction) fraction = ((Building)_entity).ConstructionProgress;
+
+        if (fraction >= HealthBarThreshold && !underConstruction)
+        {
+            if (_healthBar is not null) _healthBar.Visible = false;
+            return;
+        }
+
+        _healthBar ??= CreateHealthBar();
+        _healthBar.Visible = true;
+        _healthBar.SetValue(fraction, underConstruction);
+    }
+
+    private HealthBar CreateHealthBar()
+    {
+        float height = _entity switch
+        {
+            Building building => building.FootprintRadius > 3f ? 5.5f : 4.2f,
+            _ => 2.3f,
+        };
+
+        var bar = new HealthBar { Position = new Vector3(0f, height, 0f) };
+        AddChild(bar);
+        return bar;
+    }
+
+    // --- Auswahlring ------------------------------------------------------
 
     /// <summary>Blendet den Auswahlring ein oder aus; er wird beim ersten Mal erzeugt.</summary>
     public void SetSelected(bool selected)
@@ -60,10 +117,9 @@ public sealed partial class EntityView : Node3D
     {
         float radius = _entity switch
         {
-            Building building => Mathf.Max(building.Footprint.X, building.Footprint.Y)
-                                 * 0.5f * NavGrid.CellSize + 0.4f,
+            Building building => building.FootprintRadius + 0.4f,
             Unit unit => unit.Radius + 0.45f,
-            _ => 0.8f,
+            _ => 0.9f,
         };
 
         var ring = new MeshInstance3D

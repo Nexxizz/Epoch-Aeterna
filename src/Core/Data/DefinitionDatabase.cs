@@ -18,11 +18,16 @@ public sealed class DefinitionDatabase
     private readonly Dictionary<string, UnitDefinition> _units = new();
     private readonly Dictionary<string, BuildingDefinition> _buildings = new();
     private readonly Dictionary<string, AgeDefinition> _ages = new();
+    private readonly Dictionary<string, ResourceNodeDefinition> _resourceNodes = new();
     private readonly List<AgeDefinition> _agesByIndex = new();
 
     public IReadOnlyDictionary<string, UnitDefinition> Units => _units;
     public IReadOnlyDictionary<string, BuildingDefinition> Buildings => _buildings;
     public IReadOnlyList<AgeDefinition> Ages => _agesByIndex;
+    public IReadOnlyDictionary<string, ResourceNodeDefinition> ResourceNodes => _resourceNodes;
+
+    /// <summary>Konter-Matrix. Bleibt beim Standard, wenn keine .tres gefunden wurde.</summary>
+    public CombatTable Combat { get; private set; } = new();
 
     public int HighestAgeIndex => _agesByIndex.Count - 1;
 
@@ -32,6 +37,7 @@ public sealed class DefinitionDatabase
         _buildings.Clear();
         _ages.Clear();
         _agesByIndex.Clear();
+        _resourceNodes.Clear();
 
         ScanDirectory(DataRoot);
 
@@ -39,7 +45,7 @@ public sealed class DefinitionDatabase
         _agesByIndex.Sort(static (a, b) => a.Index.CompareTo(b.Index));
 
         GD.Print($"[Definitions] {_units.Count} Einheiten, {_buildings.Count} Gebaeude, " +
-                 $"{_agesByIndex.Count} Zeitalter geladen.");
+                 $"{_resourceNodes.Count} Vorkommen, {_agesByIndex.Count} Zeitalter geladen.");
     }
 
     private void ScanDirectory(string path)
@@ -86,9 +92,18 @@ public sealed class DefinitionDatabase
                 _buildings[building.Id] = building;
                 break;
 
+            case ResourceNodeDefinition node:
+                if (!Validate(node.Id, resPath, _resourceNodes.ContainsKey(node.Id))) return;
+                _resourceNodes[node.Id] = node;
+                break;
+
             case AgeDefinition age:
                 if (!Validate(age.Id, resPath, _ages.ContainsKey(age.Id))) return;
                 _ages[age.Id] = age;
+                break;
+
+            case CombatTable table:
+                Combat = table;
                 break;
         }
     }
@@ -112,6 +127,8 @@ public sealed class DefinitionDatabase
 
     public BuildingDefinition? GetBuilding(string id) => _buildings.GetValueOrDefault(id);
 
+    public ResourceNodeDefinition? GetResourceNode(string id) => _resourceNodes.GetValueOrDefault(id);
+
     public AgeDefinition? GetAge(int index) =>
         index >= 0 && index < _agesByIndex.Count ? _agesByIndex[index] : null;
 
@@ -120,6 +137,7 @@ public sealed class DefinitionDatabase
     {
         if (_units.TryGetValue(id, out UnitDefinition? unit)) return unit;
         if (_buildings.TryGetValue(id, out BuildingDefinition? building)) return building;
+        if (_resourceNodes.TryGetValue(id, out ResourceNodeDefinition? node)) return node;
         return null;
     }
 }

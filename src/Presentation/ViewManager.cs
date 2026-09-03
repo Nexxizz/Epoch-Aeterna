@@ -30,6 +30,18 @@ public sealed partial class ViewManager : Node3D
     private MeshInstance3D? _commandMarker;
     private float _markerTimeLeft;
 
+    /// <summary>Alle lebenden Views mit ihrer Entity — der Nebel braucht beides.</summary>
+    public IEnumerable<(Entity Entity, EntityView View)> Views
+    {
+        get
+        {
+            foreach (EntityView view in _views.Values)
+            {
+                if (view.Entity is { } entity) yield return (entity, view);
+            }
+        }
+    }
+
     public void Attach(SimulationWorld world, SimulationRunner runner)
     {
         _world = world;
@@ -37,6 +49,8 @@ public sealed partial class ViewManager : Node3D
 
         world.Events.EntitySpawned += OnEntitySpawned;
         world.Events.EntityRemoved += OnEntityRemoved;
+        world.Events.ConstructionStageChanged += OnConstructionChanged;
+        world.Events.ConstructionCompleted += OnConstructionChanged;
 
         // Alles, was vor dem Anmelden schon existiert, nachtraeglich aufnehmen.
         foreach (Entity entity in world.Entities.All()) OnEntitySpawned(entity);
@@ -47,6 +61,8 @@ public sealed partial class ViewManager : Node3D
         if (_world is null) return;
         _world.Events.EntitySpawned -= OnEntitySpawned;
         _world.Events.EntityRemoved -= OnEntityRemoved;
+        _world.Events.ConstructionStageChanged -= OnConstructionChanged;
+        _world.Events.ConstructionCompleted -= OnConstructionChanged;
     }
 
     public override void _Process(double delta)
@@ -72,13 +88,15 @@ public sealed partial class ViewManager : Node3D
     }
 
     /// <summary>Zeigt kurz an, wohin der letzte Befehl ging.</summary>
-    public void FlashCommandMarker(Vector2 target)
+    public void FlashCommandMarker(Vector2 target, Color color)
     {
         if (_world is null) return;
 
         _commandMarker ??= CreateCommandMarker();
         _commandMarker.Position = new Vector3(target.X, _world.Nav.SampleHeight(target) + 0.15f, target.Y);
         _markerTimeLeft = MarkerLifetime;
+
+        if (_commandMarker.MaterialOverride is StandardMaterial3D material) material.AlbedoColor = color;
     }
 
     private MeshInstance3D CreateCommandMarker()
@@ -101,6 +119,8 @@ public sealed partial class ViewManager : Node3D
         return marker;
     }
 
+    // --- Lebenszyklus ----------------------------------------------------
+
     private void OnEntitySpawned(Entity entity)
     {
         if (_runner is null || _world is null || _views.ContainsKey(entity.Id.Value)) return;
@@ -118,12 +138,21 @@ public sealed partial class ViewManager : Node3D
         view.QueueFree();
     }
 
+    /// <summary>Baustufe erreicht oder fertig — das Modell wird ausgetauscht.</summary>
+    private void OnConstructionChanged(Building building)
+    {
+        if (_views.TryGetValue(building.Id.Value, out EntityView? view)) view.ReplaceModel(BuildModel(building));
+    }
+
+    // --- Modelle ---------------------------------------------------------
+
     /// <summary>Fertiges Modell aus der Definition, sonst Platzhalter.</summary>
     private Node3D BuildModel(Entity entity)
     {
         EntityDefinition? definition = _world?.Definitions.GetEntity(entity.DefinitionId);
 
         if (definition?.ModelScene is not null &&
+            entity is not Building { IsUnderConstruction: true } &&
             definition.ModelScene.Instantiate() is Node3D model)
         {
             return model;
@@ -132,44 +161,108 @@ public sealed partial class ViewManager : Node3D
         return BuildPlaceholder(entity, definition);
     }
 
-    private Node3D BuildPlaceholder(Entity entity, EntityDefinition? definition)
+    private Node3D BuildPlaceholder(Entity entity, EntityDefinition? definition) => entity switch
     {
-        var instance = new MeshInstance3D { Name = "Placeholder" };
+        Building building => BuildBuildingPlaceholder(building),
+        ResourceNode node => BuildResourcePlaceholder(node),
+        _ => BuildUnitPlaceholder(entity, definition),
+    };
 
-        if (entity is Building building)
+    /// <summary>
+    /// Gebaeude als Quader. Baustellen wachsen sichtbar in drei Stufen — erst ein
+    /// flaches Fundament, dann der Rohbau, dann das fertige Haus.
+    /// </summary>
+    private Node3D BuildBuildingPlaceholder(Building building)
+    {
+        float footprint = building.FootprintRadius * 1.7f;
+        float fullHeight = Mathf.Clamp(footprint * 0.75f, 2.5f, 6f);
+
+        float heightFactor = building.IsUnderConstruction
+            ? building.ConstructionStage switch { 0 => 0.15f, 1 => 0.55f, _ => 0.85f }
+            : 1f;
+
+        var size = new Vector3(footprint, fullHeight * heightFactor, footprint);
+
+        var instance = new MeshInstance3D
         {
-            var size = new Vector3(
-                building.Footprint.X * NavGrid.CellSize * 0.85f,
-                4f,
-                building.Footprint.Y * NavGrid.CellSize * 0.85f);
+            Name = "Placeholder",
+            Mesh = new BoxMesh { Size = size },
+            Position = new Vector3(0f, size.Y * 0.5f, 0f),
+        };
 
-            instance.Mesh = new BoxMesh { Size = size };
-            instance.Position = new Vector3(0f, size.Y * 0.5f, 0f);
-        }
-        else
-        {
-            float radius = (definition as UnitDefinition)?.Radius ?? 0.4f;
-            const float height = 1.8f;
-            instance.Mesh = new CapsuleMesh { Radius = radius, Height = height };
-            instance.Position = new Vector3(0f, height * 0.5f, 0f);
+        instance.MaterialOverride = building.IsUnderConstruction
+            ? ConstructionMaterial()
+            : GetPlayerMaterial(building.OwnerId);
 
-            // Kleiner Keil als Blickrichtungsmarkierung, solange es keine Animation gibt.
-            var nose = new MeshInstance3D
-            {
-                Name = "Facing",
-                Mesh = new BoxMesh { Size = new Vector3(0.12f, 0.12f, 0.5f) },
-                Position = new Vector3(0f, height * 0.65f, -radius - 0.25f),
-            };
-            instance.AddChild(nose);
-        }
-
-        instance.MaterialOverride = GetPlayerMaterial(entity.OwnerId);
         return instance;
     }
 
+    private static Node3D BuildResourcePlaceholder(ResourceNode node)
+    {
+        // Der Baum schrumpft sichtbar, waehrend er abgeholzt wird.
+        float wear = Mathf.Lerp(0.45f, 1f, node.RemainingFraction);
+
+        (Mesh mesh, Color color, float lift) = node.Resource switch
+        {
+            ResourceType.Wood => (
+                new CylinderMesh { TopRadius = 0.05f, BottomRadius = 1.4f, Height = 6f * wear, RadialSegments = 6, Rings = 1 },
+                new Color(0.16f, 0.31f, 0.15f), 3f * wear),
+
+            ResourceType.Stone => (
+                new SphereMesh { Radius = 1.1f, Height = 1.7f, RadialSegments = 6, Rings = 3 },
+                new Color(0.46f, 0.45f, 0.43f), 0.55f),
+
+            ResourceType.Gold => (
+                new SphereMesh { Radius = 1.0f, Height = 1.5f, RadialSegments = 6, Rings = 3 },
+                new Color(0.78f, 0.63f, 0.18f), 0.5f),
+
+            _ => (
+                (Mesh)new SphereMesh { Radius = 0.65f, Height = 1.0f, RadialSegments = 6, Rings = 3 },
+                new Color(0.45f, 0.18f, 0.28f), 0.45f),
+        };
+
+        return new MeshInstance3D
+        {
+            Name = "Placeholder",
+            Mesh = mesh,
+            Position = new Vector3(0f, lift, 0f),
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.9f },
+        };
+    }
+
+    private Node3D BuildUnitPlaceholder(Entity entity, EntityDefinition? definition)
+    {
+        float radius = (definition as UnitDefinition)?.Radius ?? 0.4f;
+        const float height = 1.8f;
+
+        var instance = new MeshInstance3D
+        {
+            Name = "Placeholder",
+            Mesh = new CapsuleMesh { Radius = radius, Height = height },
+            Position = new Vector3(0f, height * 0.5f, 0f),
+            MaterialOverride = GetPlayerMaterial(entity.OwnerId),
+        };
+
+        // Kleiner Keil als Blickrichtungsmarkierung, solange es keine Animation gibt.
+        instance.AddChild(new MeshInstance3D
+        {
+            Name = "Facing",
+            Mesh = new BoxMesh { Size = new Vector3(0.12f, 0.12f, 0.5f) },
+            Position = new Vector3(0f, height * 0.65f, -radius - 0.25f),
+        });
+
+        return instance;
+    }
+
+    private static StandardMaterial3D ConstructionMaterial() => new()
+    {
+        AlbedoColor = new Color(0.62f, 0.52f, 0.34f),
+        Roughness = 0.95f,
+    };
+
     /// <summary>
     /// Ein Material pro Spieler, geteilt ueber alle seine Entities — spart Draw-Call-Zustandswechsel
-    /// und nimmt die Fraktionsfarbe schon jetzt vorweg (Phase 1.3).
+    /// und nimmt die Fraktionsfarbe schon jetzt vorweg.
     /// </summary>
     private StandardMaterial3D GetPlayerMaterial(int ownerId)
     {

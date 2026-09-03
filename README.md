@@ -52,7 +52,7 @@ Screenshot ohne Interaktion aufnehmen (prüft Beleuchtung und Szenenaufbau, CI-t
 "C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --path . -- "--shot=C:/temp/shot.png"
 ```
 
-## Steuerung (Stand Phase 2)
+## Steuerung (Stand Phase 3)
 
 **Kamera**
 
@@ -64,24 +64,36 @@ Screenshot ohne Interaktion aufnehmen (prüft Beleuchtung und Szenenaufbau, CI-t
 | `Q` / `E` | Drehen |
 | `Pos1` | Sprung zur eigenen Basis |
 
-**Einheiten**
+**Auswahl und Befehle**
 
 | Eingabe | Wirkung |
 |---|---|
-| Linksklick | Einheit auswählen |
-| Linksklick ziehen | Rahmenauswahl |
+| Linksklick | Auswählen |
+| Linksklick ziehen | Rahmenauswahl (Militär hat Vorrang) |
 | Doppelklick | alle sichtbaren Einheiten desselben Typs |
 | `Shift` + Klick | zur Auswahl hinzufügen / entfernen |
-| Rechtsklick | Bewegungsbefehl |
+| **Rechtsklick** | kontextabhängig: Boden → gehen, Vorkommen → sammeln, eigene Baustelle → bauen, Gegner → angreifen |
 | `Shift` + Rechtsklick | Befehl anhängen statt ersetzen |
-| `S` | Stopp |
-| `Strg` + `0`–`9` | Kontrollgruppe setzen |
-| `0`–`9` | Kontrollgruppe abrufen |
+| `A` | Angriffsbewegung zur Mausposition |
+| `S` | Stopp · `H` Halten · `D` Defensiv |
+| `Strg` + `0`–`9` / `0`–`9` | Kontrollgruppe setzen / abrufen |
 
-**Sonstiges:** `F1` bildet einen Siedler aus, `F2` einen Späher, `Leertaste` pausiert, `ESC` beendet.
+**Bauen und Ausbilden**
 
-> `WASD` ist bewusst nicht belegt: Die Buchstabentasten bleiben für Einheitenbefehle frei
-> (`A` Angriffsbewegung, `S` Stopp, `H` Halten), wie in Empire Earth und AoE.
+| Eingabe | Wirkung |
+|---|---|
+| `B` Haus · `N` Lagerhaus · `M` Kaserne | Bauplatzierung starten |
+| `K` Farm · `T` Wachturm · `R` Schießstand | Bauplatzierung starten |
+| Linksklick / `Shift`+Linksklick | Baustelle setzen / weitere setzen |
+| Rechtsklick oder `ESC` | Platzierung abbrechen |
+| `Entf` | ausgewähltes Gebäude abreißen |
+| `F1` / `F2` / `F3` | Siedler / Späher / Speerkämpfer ausbilden |
+| `F4` | Zeitalteraufstieg starten |
+
+**Sonstiges:** `Leertaste` pausiert, `+` / `-` ändern das Tempo (0,5× bis 2×), `ESC` beendet.
+
+> `WASD` ist bewusst nicht belegt: Die Buchstabentasten werden für Einheitenbefehle
+> gebraucht (`A` Angriffsbewegung, `S` Stopp, `H` Halten), wie in Empire Earth und AoE.
 
 ## Blender-Assets bauen
 

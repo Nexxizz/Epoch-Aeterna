@@ -58,6 +58,8 @@ public static class SelfTest
         CheckPopulationCap(world, definitions);
         CheckRefund(world, definitions);
 
+        SelfTestPhase3.Run(definitions, Section, Check);
+
         GD.Print(Failures.Count == 0
             ? $"\nAlle {_checks} Pruefungen bestanden."
             : $"\n{Failures.Count} von {_checks} Pruefungen FEHLGESCHLAGEN:");
@@ -177,7 +179,7 @@ public static class SelfTest
         GeneratedMap map = MapGenerator.Generate(12345);
 
         Check("Karte hat die erwartete Groesse", map.Grid.Width == 128 && map.Grid.Height == 128);
-        Check("Streuobjekte wurden gesetzt", map.Decorations.Count > 100);
+        Check("Vorkommen wurden gesetzt", map.ResourceSpots.Count > 100);
         Check("Zwei Startplaetze gewaehlt", map.StartPositions.Count == 2);
 
         Check("Startplaetze liegen auseinander",
@@ -192,12 +194,12 @@ public static class SelfTest
         // Gleicher Seed, gleiche Karte — Voraussetzung fuer reproduzierbare Tests.
         GeneratedMap again = MapGenerator.Generate(12345);
         Check("Gleicher Seed erzeugt dieselbe Karte",
-            again.Decorations.Count == map.Decorations.Count &&
+            again.ResourceSpots.Count == map.ResourceSpots.Count &&
             again.StartPositions[0].IsEqualApprox(map.StartPositions[0]));
 
         GeneratedMap other = MapGenerator.Generate(999);
         Check("Anderer Seed erzeugt eine andere Karte",
-            other.Decorations.Count != map.Decorations.Count ||
+            other.ResourceSpots.Count != map.ResourceSpots.Count ||
             !other.StartPositions[0].IsEqualApprox(map.StartPositions[0]));
     }
 
@@ -210,12 +212,12 @@ public static class SelfTest
         Check("Zwei Spieler angelegt", world.Players.Count == 2);
         Check("Zwei Rathaeuser gebaut", world.Entities.Buildings.Count == 2);
         Check("Acht Startsiedler gesetzt", world.Entities.Units.Count == 8);
-        Check("Vier Systeme registriert", world.Systems.Count == 4);
+        Check("Elf Systeme registriert", world.Systems.Count == 11);
 
         Player player = world.Players[0];
         Check("Bevoelkerung aus Entities abgeleitet", player.Population == 4);
         Check("Bevoelkerungslimit vom Rathaus", player.PopulationCap == 5);
-        Check("Startressourcen gutgeschrieben", player.GetResource(ResourceType.Food) == 200);
+        Check("Startressourcen gutgeschrieben", player.GetResource(ResourceType.Food) == 250);
 
         // Das Rathaus muss im Gitter als belegt eingetragen sein.
         Building townCenter = FindTownCenter(world, player.Id);

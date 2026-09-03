@@ -24,6 +24,11 @@ uniform float tile_scale = 0.12;
 uniform float detail_strength = 0.10;
 uniform float terrain_roughness = 0.93;
 
+// Nebel des Krieges: 1 = sichtbar, ~0.45 = erinnert, 0 = unerkundet.
+// Weiss vorbelegt, damit das Gelaende ohne zugewiesene Textur voll sichtbar bleibt.
+uniform sampler2D fog_map : filter_linear, hint_default_white;
+uniform float fog_darkness = 0.82;
+
 varying vec3 world_position;
 
 // Billiges Wert-Rauschen, das die grossen einfarbigen Flaechen aufbricht.
@@ -70,6 +75,10 @@ void fragment() {
 		value_noise(world_position.xz * 1.70) * 0.35;
 
 	albedo *= 1.0 - detail_strength + detail * detail_strength * 2.0;
+
+	// Unerkundetes Gelaende wird fast schwarz, erinnertes deutlich abgedunkelt.
+	float visibility = texture(fog_map, UV).r;
+	albedo *= mix(1.0 - fog_darkness, 1.0, visibility);
 
 	ALBEDO = albedo;
 	ROUGHNESS = terrain_roughness;

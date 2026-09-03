@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="UnitDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/Core/Data/UnitDefinition.cs" id="1_def"]
+[ext_resource type="Script" path="res://src/Core/Data/ResourceSet.cs" id="2_set"]
+
+[sub_resource type="Resource" id="Resource_cost"]
+script = ExtResource("2_set")
+Food = 45
+Wood = 35
+Stone = 0
+Gold = 0
+
+[resource]
+script = ExtResource("1_def")
+Id = "unit_slinger"
+DisplayName = "Schleuderer"
+Description = "Fernkampf der Steinzeit. Im Nahkampf hilflos."
+BuildTimeSeconds = 13.0
+MaxHealth = 60.0
+Armor = 0.0
+VisionRange = 16.0
+RequiredAgeIndex = 0
+MoveSpeed = 2.8
+Radius = 0.36
+PopulationCost = 1
+AttackDamage = 9.0
+AttackRange = 9.0
+AttackCooldownSeconds = 2.0
+DamageType = 2
+ArmorClass = 2
+UsesProjectile = true
+ProjectileSpeed = 20.0
+Cost = SubResource("Resource_cost")

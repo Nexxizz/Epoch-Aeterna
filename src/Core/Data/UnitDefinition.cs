@@ -17,10 +17,20 @@ public partial class UnitDefinition : EntityDefinition
 
     [Export] public int PopulationCost { get; set; } = 1;
 
-    // --- Kampf (ausgewertet ab Phase 3.4) ---
+    // --- Kampf ---
     [Export] public float AttackDamage { get; set; }
     [Export] public float AttackRange { get; set; } = 1f;
     [Export] public float AttackCooldownSeconds { get; set; } = 1.5f;
+    [Export] public DamageType DamageType { get; set; } = DamageType.Blunt;
+    [Export] public ArmorClass ArmorClass { get; set; } = ArmorClass.Infantry;
+
+    /// <summary>Fernkaempfer verschiessen ein Geschoss mit Flugzeit statt sofort zu treffen.</summary>
+    [Export] public bool UsesProjectile { get; set; }
+
+    [Export] public float ProjectileSpeed { get; set; } = 22f;
+
+    /// <summary>Greift von selbst an, was in Sichtweite kommt.</summary>
+    [Export] public bool AutoEngages { get; set; } = true;
 
     // --- Arbeit (ausgewertet ab Phase 3.1/3.2) ---
     [Export] public bool CanGather { get; set; }

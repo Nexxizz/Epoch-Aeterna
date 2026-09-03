@@ -14,6 +14,7 @@ public sealed class EntityRegistry
     private readonly Dictionary<int, Entity> _byId = new();
     private readonly List<Unit> _units = new();
     private readonly List<Building> _buildings = new();
+    private readonly List<ResourceNode> _resourceNodes = new();
 
     private readonly List<Entity> _pendingAdd = new();
     private readonly List<EntityId> _pendingRemove = new();
@@ -22,6 +23,7 @@ public sealed class EntityRegistry
 
     public IReadOnlyList<Unit> Units => _units;
     public IReadOnlyList<Building> Buildings => _buildings;
+    public IReadOnlyList<ResourceNode> ResourceNodes => _resourceNodes;
     public int Count => _byId.Count;
 
     /// <summary>Wird nach dem Anlegen gefeuert, sobald die Entity wirklich in den Listen steht.</summary>
@@ -33,6 +35,11 @@ public sealed class EntityRegistry
     {
         entity.Id = new EntityId(_nextId++);
         entity.ResetInterpolation();
+
+        // Sofort auffindbar machen, aber erst beim Flush in die Typlisten einreihen.
+        // Damit kann ein Befehl im selben Tick etwas erzeugen und darauf verweisen,
+        // ohne dass laufende Iterationen ueber die Listen brechen.
+        _byId[entity.Id.Value] = entity;
         _pendingAdd.Add(entity);
         return entity;
     }
@@ -44,6 +51,8 @@ public sealed class EntityRegistry
     public Unit? GetUnit(EntityId id) => Get(id) as Unit;
 
     public Building? GetBuilding(EntityId id) => Get(id) as Building;
+
+    public ResourceNode? GetResourceNode(EntityId id) => Get(id) as ResourceNode;
 
     public bool Exists(EntityId id) => _byId.ContainsKey(id.Value);
 
@@ -62,6 +71,7 @@ public sealed class EntityRegistry
                 {
                     case Unit unit: _units.Remove(unit); break;
                     case Building building: _buildings.Remove(building); break;
+                    case ResourceNode node: _resourceNodes.Remove(node); break;
                 }
                 EntityRemoved?.Invoke(entity);
             }
@@ -76,11 +86,12 @@ public sealed class EntityRegistry
 
             foreach (Entity entity in batch)
             {
-                _byId[entity.Id.Value] = entity;
+                // _byId wurde bereits in Add gefuellt.
                 switch (entity)
                 {
                     case Unit unit: _units.Add(unit); break;
                     case Building building: _buildings.Add(building); break;
+                    case ResourceNode node: _resourceNodes.Add(node); break;
                 }
                 EntityAdded?.Invoke(entity);
             }
@@ -98,5 +109,6 @@ public sealed class EntityRegistry
     {
         foreach (Unit unit in _units) yield return unit;
         foreach (Building building in _buildings) yield return building;
+        foreach (ResourceNode node in _resourceNodes) yield return node;
     }
 }

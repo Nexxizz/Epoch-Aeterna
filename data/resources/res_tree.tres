@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ResourceNodeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/Core/Data/ResourceNodeDefinition.cs" id="1_def"]
+
+
+[resource]
+script = ExtResource("1_def")
+Id = "res_tree"
+DisplayName = "Baum"
+Description = "Liefert Holz, bis er gefaellt ist."
+MaxHealth = 1.0
+VisionRange = 0.0
+Resource = 1
+TotalAmount = 120
+MaxGatherers = 3
+GatherRateFactor = 1.0
+BlocksMovement = true

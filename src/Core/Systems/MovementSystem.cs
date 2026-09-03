@@ -8,6 +8,12 @@ namespace EpochAeterna.Core.Systems;
 /// <summary>
 /// Laesst Einheiten ihrem Pfad folgen und dreht sie in Laufrichtung.
 /// </summary>
+/// <remarks>
+/// Zustaendig fuer *jede* Einheit mit einem Pfad, nicht nur fuer reine
+/// Bewegungsbefehle: Ein Siedler auf dem Weg zum Baum und ein Krieger auf dem Weg
+/// zum Gegner laufen genauso. Was bei der Ankunft passiert, entscheidet dagegen das
+/// jeweils zustaendige System — dieses hier hoert am Ziel einfach auf.
+/// </remarks>
 public sealed class MovementSystem : ISimulationSystem
 {
     /// <summary>Ab dieser Naehe gilt ein Zwischenpunkt als erreicht.</summary>
@@ -29,11 +35,13 @@ public sealed class MovementSystem : ISimulationSystem
     {
         foreach (Unit unit in world.Entities.Units)
         {
-            if (unit.Order != UnitOrder.Move || unit.NeedsPath) continue;
+            if (unit.NeedsPath) continue;
 
             if (!unit.HasPath)
             {
-                FinishOrder(unit);
+                // Nur ein reiner Laufbefehl endet hier. Sammeln, Bauen und Kaempfen
+                // haben eigene Folgeschritte und werden von ihren Systemen gesteuert.
+                if (unit.Order is UnitOrder.Move or UnitOrder.AttackMove) FinishOrder(unit);
                 continue;
             }
 
@@ -56,7 +64,7 @@ public sealed class MovementSystem : ISimulationSystem
             if (!unit.HasPath)
             {
                 unit.Position = waypoint;
-                FinishOrder(unit);
+                if (unit.Order is UnitOrder.Move or UnitOrder.AttackMove) FinishOrder(unit);
             }
             return;
         }

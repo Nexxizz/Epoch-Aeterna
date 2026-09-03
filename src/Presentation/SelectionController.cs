@@ -25,20 +25,23 @@ public sealed partial class SelectionController : Node
     /// <summary>Grosszuegigkeit beim Einzelklick: Einheiten sind klein, der Cursor ungenau.</summary>
     private const float PickPadding = 0.45f;
 
+    private static readonly Color MoveMarker = new(0.4f, 1f, 0.5f);
+    private static readonly Color AttackMarker = new(1f, 0.35f, 0.3f);
+    private static readonly Color WorkMarker = new(1f, 0.85f, 0.35f);
+
     private readonly List<EntityId> _selection = new();
     private readonly HashSet<int> _selectionLookup = new();
+    private readonly List<EntityId>[] _controlGroups = new List<EntityId>[10];
 
     private SimulationWorld? _world;
     private RtsCamera? _camera;
     private ViewManager? _views;
     private SelectionBox? _box;
+    private BuildPlacementController? _placement;
 
     private int _localPlayerId = 1;
     private Vector2 _dragStart;
     private bool _dragging;
-
-    /// <summary>Kontrollgruppen 0–9.</summary>
-    private readonly List<EntityId>[] _controlGroups = new List<EntityId>[10];
 
     public IReadOnlyList<EntityId> Selection => _selection;
 
@@ -62,6 +65,33 @@ public sealed partial class SelectionController : Node
         world.Events.EntityRemoved += entity => Deselect(entity.Id);
     }
 
+    public void SetPlacement(BuildPlacementController placement) => _placement = placement;
+
+    /// <summary>Die ausgewaehlten Einheiten, die bauen koennen — fuer den Bauauftrag.</summary>
+    public EntityId[] SelectedBuilders()
+    {
+        var builders = new List<EntityId>();
+
+        foreach (EntityId id in _selection)
+        {
+            if (_world?.Entities.GetUnit(id) is { CanBuild: true }) builders.Add(id);
+        }
+        return builders.ToArray();
+    }
+
+    /// <summary>Das erste ausgewaehlte eigene Gebaeude — Ziel fuer Ausbildung und Aufstieg.</summary>
+    public Building? SelectedBuilding()
+    {
+        foreach (EntityId id in _selection)
+        {
+            if (_world?.Entities.GetBuilding(id) is { } building && building.OwnerId == _localPlayerId)
+            {
+                return building;
+            }
+        }
+        return null;
+    }
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (_world is null || _camera is null) return;
@@ -69,6 +99,8 @@ public sealed partial class SelectionController : Node
         switch (@event)
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } press:
+                // Im Bauplatzierungs-Modus setzt der Linksklick die Baustelle.
+                if (_placement is { IsPlacing: true } && _placement.TryPlace(press.ShiftPressed)) return;
                 BeginDrag(press.Position);
                 break;
 
@@ -82,6 +114,11 @@ public sealed partial class SelectionController : Node
                 break;
 
             case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true } click:
+                if (_placement is { IsPlacing: true })
+                {
+                    _placement.Cancel();
+                    return;
+                }
                 IssueContextCommand(click.Position, click.ShiftPressed);
                 break;
 
@@ -119,35 +156,16 @@ public sealed partial class SelectionController : Node
 
         if (!additive) ClearSelection();
 
-        if (wasBox) SelectInRect(new Rect2(_dragStart, position - _dragStart).Abs(), additive);
+        if (wasBox) SelectInRect(new Rect2(_dragStart, position - _dragStart).Abs());
         else SelectAt(position, additive);
 
         RaiseChanged();
     }
 
-    /// <summary>Einzelklick: naechste Einheit entlang des Mausstrahls.</summary>
+    /// <summary>Einzelklick: naechste eigene Entity entlang des Mausstrahls.</summary>
     private void SelectAt(Vector2 screenPosition, bool additive)
     {
-        if (_world is null || _camera is null) return;
-
-        Vector3 origin = _camera.Camera.ProjectRayOrigin(screenPosition);
-        Vector3 direction = _camera.Camera.ProjectRayNormal(screenPosition);
-
-        Entity? best = null;
-        float bestDistance = float.MaxValue;
-
-        foreach (Entity entity in _world.Entities.All())
-        {
-            if (entity.OwnerId != _localPlayerId) continue;
-
-            (Vector3 centre, float radius) = PickSphere(entity);
-            if (!RayHitsSphere(origin, direction, centre, radius + PickPadding, out float distance)) continue;
-            if (distance >= bestDistance) continue;
-
-            bestDistance = distance;
-            best = entity;
-        }
-
+        Entity? best = PickEntity(screenPosition, ownedOnly: true);
         if (best is null) return;
 
         if (additive && _selectionLookup.Contains(best.Id.Value)) Deselect(best.Id);
@@ -155,21 +173,28 @@ public sealed partial class SelectionController : Node
     }
 
     /// <summary>Rahmenauswahl: alles, dessen Bildschirmposition im Rechteck liegt.</summary>
-    private void SelectInRect(Rect2 rect, bool additive)
+    private void SelectInRect(Rect2 rect)
     {
         if (_world is null || _camera is null) return;
 
-        // Militaer haette Vorrang vor Zivilisten — im MVP gibt es noch kein Militaer,
-        // daher werden vorerst alle eigenen Einheiten aufgenommen.
+        // Militaer hat Vorrang: Wer eine Armee einrahmt, will nicht die Siedler
+        // mitschicken, die zufaellig danebenstehen.
+        var military = new List<EntityId>();
+        var civilian = new List<EntityId>();
+
         foreach (Unit unit in _world.Entities.Units)
         {
             if (unit.OwnerId != _localPlayerId) continue;
 
             Vector3 world = ToWorld3D(unit.Position, unit);
             if (_camera.Camera.IsPositionBehind(world)) continue;
+            if (!rect.HasPoint(_camera.Camera.UnprojectPosition(world))) continue;
 
-            if (rect.HasPoint(_camera.Camera.UnprojectPosition(world))) Select(unit.Id);
+            if (unit.AttackDamage > 0f && !unit.CanGather) military.Add(unit.Id);
+            else civilian.Add(unit.Id);
         }
+
+        foreach (EntityId id in military.Count > 0 ? military : civilian) Select(id);
     }
 
     /// <summary>Doppelklick: alle sichtbaren Einheiten desselben Typs.</summary>
@@ -177,6 +202,7 @@ public sealed partial class SelectionController : Node
     {
         if (_world is null || _camera is null) return;
 
+        ClearSelection();
         SelectAt(screenPosition, additive: false);
         if (_selection.Count == 0) return;
 
@@ -223,30 +249,82 @@ public sealed partial class SelectionController : Node
 
     // --- Befehle ---------------------------------------------------------
 
+    /// <summary>
+    /// Rechtsklick. Was passiert, haengt davon ab, worauf geklickt wurde:
+    /// Gegner angreifen, Vorkommen abbauen, eigene Baustelle bauen, sonst hinlaufen.
+    /// </summary>
     private void IssueContextCommand(Vector2 screenPosition, bool queued)
     {
         if (_world is null || _selection.Count == 0) return;
-        if (!TryPickGround(screenPosition, out Vector2 target)) return;
 
-        // Kontextsensitiv: Auf Boden geklickt heisst bewegen. Angriff und Sammeln
-        // kommen dazu, sobald es Gegner und Ressourcenknoten gibt (Phase 3).
+        EntityId[] units = _selection.ToArray();
+        Entity? hit = PickEntity(screenPosition, ownedOnly: false);
+
+        switch (hit)
+        {
+            case ResourceNode node:
+                _world.Commands.Enqueue(new GatherCommand
+                {
+                    PlayerId = _localPlayerId, Units = units, Node = node.Id,
+                });
+                _views?.FlashCommandMarker(node.Position, WorkMarker);
+                return;
+
+            case Building { IsUnderConstruction: true } site when site.OwnerId == _localPlayerId:
+                _world.Commands.Enqueue(new RepairOrBuildCommand
+                {
+                    PlayerId = _localPlayerId, Units = units, Site = site.Id,
+                });
+                _views?.FlashCommandMarker(site.Position, WorkMarker);
+                return;
+
+            case not null when hit.OwnerId != _localPlayerId && hit.OwnerId != 0:
+                _world.Commands.Enqueue(new AttackCommand
+                {
+                    PlayerId = _localPlayerId, Units = units, Target = hit.Id,
+                });
+                _views?.FlashCommandMarker(hit.Position, AttackMarker);
+                return;
+        }
+
+        if (!GroundPicker.TryPick(_world.Nav, _camera!.Camera, screenPosition, out Vector2 target)) return;
+
         _world.Commands.Enqueue(new MoveCommand
         {
             PlayerId = _localPlayerId,
-            Units = _selection.ToArray(),
+            Units = units,
             Target = target,
             Queued = queued,
         });
 
-        _views?.FlashCommandMarker(target);
+        _views?.FlashCommandMarker(target, MoveMarker);
     }
 
     private void HandleKey(InputEventKey key)
     {
-        if (key.Keycode == Key.S)
+        switch (key.Keycode)
         {
-            StopSelection();
-            return;
+            case Key.S:
+                SendToSelection(new StopCommand { PlayerId = _localPlayerId, Units = _selection.ToArray() });
+                return;
+
+            case Key.H:
+                SendToSelection(new SetStanceCommand
+                {
+                    PlayerId = _localPlayerId, Units = _selection.ToArray(), Stance = Stance.HoldPosition,
+                });
+                return;
+
+            case Key.D:
+                SendToSelection(new SetStanceCommand
+                {
+                    PlayerId = _localPlayerId, Units = _selection.ToArray(), Stance = Stance.Defensive,
+                });
+                return;
+
+            case Key.A when !key.CtrlPressed:
+                BeginAttackMove();
+                return;
         }
 
         int group = DigitToGroup(key.Keycode);
@@ -256,15 +334,29 @@ public sealed partial class SelectionController : Node
         else RecallControlGroup(group);
     }
 
-    private void StopSelection()
+    /// <summary>Angriffsbewegung auf die aktuelle Mausposition.</summary>
+    private void BeginAttackMove()
     {
-        if (_world is null || _selection.Count == 0) return;
+        if (_world is null || _camera is null || _selection.Count == 0) return;
 
-        _world.Commands.Enqueue(new StopCommand
+        Vector2 mouse = GetViewport().GetMousePosition();
+        if (!GroundPicker.TryPick(_world.Nav, _camera.Camera, mouse, out Vector2 target)) return;
+
+        _world.Commands.Enqueue(new MoveCommand
         {
             PlayerId = _localPlayerId,
             Units = _selection.ToArray(),
+            Target = target,
+            Attacking = true,
         });
+
+        _views?.FlashCommandMarker(target, AttackMarker);
+    }
+
+    private void SendToSelection(ICommand command)
+    {
+        if (_world is null || _selection.Count == 0) return;
+        _world.Commands.Enqueue(command);
     }
 
     private void AssignControlGroup(int group)
@@ -293,39 +385,30 @@ public sealed partial class SelectionController : Node
 
     // --- Geometrie -------------------------------------------------------
 
-    /// <summary>Schnittpunkt des Mausstrahls mit dem Gelaende, iterativ angenaehert.</summary>
-    private bool TryPickGround(Vector2 screenPosition, out Vector2 target)
+    /// <summary>Naechste Entity entlang des Mausstrahls.</summary>
+    private Entity? PickEntity(Vector2 screenPosition, bool ownedOnly)
     {
-        target = Vector2.Zero;
-        if (_world is null || _camera is null) return false;
+        if (_world is null || _camera is null) return null;
 
         Vector3 origin = _camera.Camera.ProjectRayOrigin(screenPosition);
         Vector3 direction = _camera.Camera.ProjectRayNormal(screenPosition);
 
-        if (Mathf.Abs(direction.Y) < 0.0001f) return false;
+        Entity? best = null;
+        float bestDistance = float.MaxValue;
 
-        NavGrid grid = _world.Nav;
-
-        // Erster Schaetzwert: Schnitt mit der Ebene y=0. Danach ein paar Schritte
-        // Nachfuehrung auf die tatsaechliche Gelaendehoehe. Konvergiert bei den
-        // flachen Hoehen dieser Karte in wenigen Durchlaeufen.
-        float distance = -origin.Y / direction.Y;
-        if (distance <= 0f) return false;
-
-        for (int i = 0; i < 6; i++)
+        foreach (Entity entity in _world.Entities.All())
         {
-            Vector3 point = origin + direction * distance;
-            float ground = grid.SampleHeight(new Vector2(point.X, point.Z));
-            float error = point.Y - ground;
+            if (ownedOnly && entity.OwnerId != _localPlayerId) continue;
 
-            if (Mathf.Abs(error) < 0.05f) break;
-            distance += error / -direction.Y;
-            if (distance <= 0f) return false;
+            (Vector3 centre, float radius) = PickSphere(entity);
+            if (!RayHitsSphere(origin, direction, centre, radius + PickPadding, out float distance)) continue;
+            if (distance >= bestDistance) continue;
+
+            bestDistance = distance;
+            best = entity;
         }
 
-        Vector3 hit = origin + direction * distance;
-        target = new Vector2(hit.X, hit.Z);
-        return true;
+        return best;
     }
 
     private Vector3 ToWorld3D(Vector2 planar, Entity entity)
@@ -337,9 +420,9 @@ public sealed partial class SelectionController : Node
 
     private (Vector3 Centre, float Radius) PickSphere(Entity entity) => entity switch
     {
-        Building building => (ToWorld3D(building.Position, building),
-            Mathf.Max(building.Footprint.X, building.Footprint.Y) * 0.5f * NavGrid.CellSize * 0.6f),
+        Building building => (ToWorld3D(building.Position, building), building.FootprintRadius * 0.9f),
         Unit unit => (ToWorld3D(unit.Position, unit), Mathf.Max(unit.Radius, 0.6f)),
+        ResourceNode => (ToWorld3D(entity.Position, entity), 1.1f),
         _ => (ToWorld3D(entity.Position, entity), 0.6f),
     };
 

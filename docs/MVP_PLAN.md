@@ -207,62 +207,92 @@ EpochAeterna/
 
 ### 3.1 Ressourcen-Wirtschaft
 
-- [ ] Ressourcenknoten als Entities mit endlichem Vorrat (Baum, Steinbruch, Goldader, Beerenbusch)
-- [ ] Sammel-Loop: hingehen → sammeln (Rate/s, Traglimit) → zur nächsten Abgabestelle → abliefern → zurück
-- [ ] Automatische Suche des nächsten gleichartigen Knotens, wenn der aktuelle erschöpft ist
-- [ ] Farm als erneuerbare Nahrungsquelle (endlicher Vorrat, wieder bebaubar)
-- [ ] Abgabestellen: Rathaus und Lagerhaus
-- [ ] Visuelles Feedback: Baum fällt bzw. schrumpft, Ressourcenzahl steigt als Floating-Text
+- [x] Ressourcenknoten als Entities mit endlichem Vorrat — Baum, Steinbruch, Goldader, Beerenbusch als `.tres`
+- [x] Sammel-Loop: hingehen → sammeln → zur Abgabestelle → abliefern → zurück
+- [x] Automatische Suche des nächsten gleichartigen Knotens, wenn der aktuelle erschöpft ist
+- [x] Abgabestellen: Rathaus und Lagerhaus, jeweils die nächstgelegene
+- [x] Visuelles Feedback: Baum schrumpft sichtbar, Ertrag steigt als Zahl auf
+- [ ] Farm als erneuerbare Nahrungsquelle — Gebäude und Definition stehen, das Wiederbestellen fehlt
+
+> Jede Startbasis bekommt garantiert alle vier Ressourcen in Reichweite. Ohne diese
+> Zusicherung entscheidet der Zufall die Partie, bevor sie beginnt — der Selbsttest
+> prüft das für beide Startplätze.
 
 ### 3.2 Bauen
 
-- [ ] Bauplatzierungs-Modus: Geistermodell folgt dem Cursor, rastet aufs Grid, grün/rot je nach Gültigkeit
-- [ ] Prüfung: Terrain flach genug, keine Überlappung, Ressourcen vorhanden, Zeitalter/Voraussetzung erfüllt
-- [ ] Baustellen-Entity: Ressourcen werden sofort abgezogen, HP wachsen mit dem Baufortschritt
-- [ ] Mehrere Siedler an einer Baustelle = schnellerer Bau (mit abnehmendem Ertrag)
-- [ ] **3 sichtbare Baustufen** (Fundament → Rohbau → fertig), Umschaltung bei 33 % / 66 % / 100 %
-- [ ] Abriss eigener Gebäude (mit Teilrückerstattung)
+- [x] Bauplatzierungs-Modus: Geistermodell folgt dem Cursor, rastet aufs Grid, grün/rot
+- [x] Prüfung: Terrain flach genug, keine Überlappung, Ressourcen, Zeitalter, Voraussetzungs-Gebäude
+- [x] Baustellen-Entity: Ressourcen sofort abgezogen, HP wachsen mit dem Fortschritt
+- [x] Mehrere Siedler bauen schneller, mit abnehmendem Ertrag
+- [x] **3 sichtbare Baustufen**, Umschaltung bei 33 % / 66 % / 100 %
+- [x] Abriss mit Teilrückerstattung, anteilig zum Baufortschritt
 - [ ] 🟢 Reparatur beschädigter Gebäude
+
+> Vorschau und Befehl rufen dieselbe Prüfmethode auf. Damit kann die Vorschau nicht
+> lügen — was grün leuchtet, wird auch gebaut.
 
 ### 3.3 Produktion & Bevölkerung
 
-- [ ] Produktionswarteschlange pro Gebäude (max. 5 sichtbar), Fortschrittsbalken
-- [ ] Abbruch mit Rückerstattung
-- [ ] Sammelpunkt (Rally Point) setzbar, sichtbare Flagge
-- [ ] Bevölkerungsprüfung blockiert Produktion bei vollem Limit (mit UI-Warnung)
+- [x] Produktionswarteschlange pro Gebäude (max. 5), Fortschritt im Datenmodell
+- [x] Abbruch mit Rückerstattung
+- [x] Sammelpunkt setzbar
+- [x] Bevölkerungsprüfung hält die Produktion an, statt den Befehl zu verwerfen
+- [ ] Fortschrittsbalken und Sammelpunkt-Flagge im HUD — Phase 6
 
 ### 3.4 Kampf
 
-- [ ] HP, Rüstung, Schadenstyp (Hieb / Stich / Distanz / Belagerung), Konter-Matrix in den Daten
-- [ ] Nahkampf: anlaufen → Angriffsanimation → Treffer im Animation-Event-Frame
-- [ ] Fernkampf: Projektil-Entity mit Flugzeit und Bogenbahn, Treffer beim Aufschlag
-- [ ] Aggro-/Zielsuche: Einheiten greifen Feinde im Sichtradius automatisch an (Haltung: Aggressiv / Defensiv / Halten)
-- [ ] Tod: Todesanimation → Leiche bleibt X s → Entfernung; Gebäude → Trümmer-Mesh
-- [ ] Gebäude greifen an: Wachturm mit Pfeilen
-- [ ] Trefferfeedback: Aufblitzen, Partikel, Sound, HP-Balken über beschädigten Einheiten
+- [x] HP, Rüstung, Schadenstyp (Hieb / Stich / Distanz / Belagerung), Konter-Matrix als `.tres`
+- [x] Nahkampf: anlaufen, in Reichweite zuschlagen, Abklingzeit
+- [x] Fernkampf: Geschoss mit Flugzeit; Schaden fällt **beim Einschlag** an, nicht beim Abschuss
+- [x] Zielsuche im Sichtradius, Haltungen Aggressiv / Defensiv / Halten
+- [x] Tod entfernt die Entity und zählt in die Statistik
+- [x] Wachturm schießt selbstständig
+- [x] Trefferfeedback: Lebensbalken erscheinen bei Schaden
+- [ ] Todesanimation, Leichen und Trümmer-Meshes — brauchen die Modelle aus Phase 5
 
 ### 3.5 Zeitalter-Aufstieg
 
-- [ ] `AgeDefinition`-Kette; MVP: **Zeitalter 1 "Steinzeit" → Zeitalter 2 "Kupferzeit"**
-- [ ] Aufstieg im Rathaus: Kosten + Forschungszeit + Voraussetzung (z. B. 2 verschiedene Zeitalter-1-Gebäude)
-- [ ] Beim Aufstieg: neue Einheiten und Gebäude freigeschaltet, Basiswerte-Boni
-- [ ] 🟡 Gebäudemodelle wechseln beim Aufstieg das Aussehen (Zeitalter-Varianten) — im MVP mindestens beim Rathaus
-- [ ] Sichtbares Feedback: Fanfare, Bildschirmmeldung, HUD-Zeitalteranzeige
+- [x] `AgeDefinition`-Kette, MVP: Steinzeit → Kupferzeit
+- [x] Aufstieg im Rathaus: Kosten, Forschungszeit, Voraussetzung von 2 verschiedenen Gebäuden
+- [x] Freischaltung läuft rein über `RequiredAgeIndex` in den `.tres` — kein Codeeingriff je Zeitalter
+- [x] Pauschaler HP-Zuwachs beim Aufstieg
+- [ ] Zeitalter-Varianten der Gebäudemodelle und Fanfare — Phase 5 bzw. 6
 
 ### 3.6 Fog of War
 
-- [ ] Sichtbarkeits-Grid pro Spieler (unerforscht / erkundet / sichtbar)
-- [ ] Sichtradius pro Entity, Aktualisierung bei Bewegung (inkrementell, nicht jeden Tick alles)
-- [ ] Rendering: Fog-Textur + Shader-Overlay auf dem Terrain, weiche Kanten
-- [ ] Gegner-Entities werden ausgeblendet, wenn nicht sichtbar; Gebäude bleiben als "Erinnerung" stehen
+- [x] Sichtbarkeits-Grid pro Spieler: unerforscht / erkundet / sichtbar
+- [x] Sichtradius pro Entity, Neuaufbau alle 4 Ticks statt jeden
+- [x] Rendering **im Gelände-Shader**, nicht als eigene Ebene
+- [x] Gegner werden ausgeblendet; Gebäude und Vorkommen bleiben als Erinnerung stehen
+
+> Eine schwebende Nebelebene müsste über jedem Hügel liegen, bräuchte abgeschalteten
+> Tiefentest und verdeckt dann alles andere gleich mit — das war der erste Versuch und
+> färbte den Bildschirm komplett schwarz. Ein Texturzugriff im ohnehin vorhandenen
+> Shader kostet dagegen nichts.
 
 ### 3.7 Siegbedingung & Match-Ablauf
 
-- [ ] Startaufstellung: Rathaus + 4 Siedler + Startressourcen pro Spieler
-- [ ] Niederlage, wenn alle Gebäude **und** Siedler eines Spielers zerstört sind
-- [ ] Sieg-/Niederlage-Bildschirm mit Statistik (gesammelt, gebaut, getötet, verloren)
-- [ ] Spiel pausieren, Spielgeschwindigkeit 0,5× / 1× / 2×
-- [ ] Neustart und Rückkehr ins Hauptmenü ohne Neustart der Anwendung
+- [x] Startaufstellung: Rathaus + 4 Siedler + Startressourcen
+- [x] Niederlage, wenn weder Gebäude noch Siedler übrig sind
+- [x] Sieg-/Niederlage-Bildschirm mit Statistik (gesammelt, gebaut, getötet, verloren)
+- [x] Pause und Spielgeschwindigkeit 0,5× / 1× / 2×
+- [x] Neustart ohne Neustart der Anwendung
+- [ ] Hauptmenü — Phase 6
+
+**Verifikation Phase 3** — der Selbsttest deckt jetzt 126 Prüfungen ab:
+
+| Prüfung | Ergebnis |
+|---|---|
+| `dotnet build` | 0 Warnungen, 0 Fehler |
+| Selbsttest (126 Prüfungen) | alle bestanden, Exit-Code 0 |
+| Headless-Import | keine Fehler |
+| Laufzeit | keine Fehler, Screenshot bestätigt Nebel, Vorkommen und Basis |
+
+> Zwei Fehler, die der Selbsttest zunächst **nicht** gefunden hat, weil er zu nachsichtig
+> war: Die Konter-Matrix ließ sich gar nicht laden (Godot verlangt Dateiname = Klassenname)
+> und fiel still auf den eingebauten Fallback zurück — der dieselben Werte hatte. Der
+> Fallback besteht jetzt nur noch aus Einsen, und der Test prüft, dass etwas anderes
+> ankommt. Eine Prüfung, die auch beim Ausfall grün bleibt, prüft nichts.
 
 ---
 

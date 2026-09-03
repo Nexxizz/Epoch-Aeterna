@@ -20,6 +20,12 @@ public sealed class Player
 
     public bool IsDefeated { get; set; }
 
+    /// <summary>Bilanz der Partie — gesammelt, gebaut, getoetet, verloren.</summary>
+    public MatchStats Stats { get; } = new();
+
+    /// <summary>Sichtbarkeit der Karte aus Sicht dieses Spielers.</summary>
+    public Map.VisionGrid? Vision { get; set; }
+
     private readonly int[] _resources = new int[ResourceTypes.Count];
 
     /// <summary>Belegte Bevoelkerung — Summe der Bevoelkerungskosten aller lebenden Einheiten.</summary>
@@ -99,7 +105,8 @@ public sealed class Player
         int cap = 0;
         foreach (Building building in registry.Buildings)
         {
-            if (building.OwnerId == Id) cap += building.PopulationProvided;
+            // Eine Baustelle beherbergt noch niemanden.
+            if (building.OwnerId == Id && !building.IsUnderConstruction) cap += building.PopulationProvided;
         }
         cap = Mathf.Min(cap, HardPopulationCap);
 

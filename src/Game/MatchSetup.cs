@@ -26,11 +26,14 @@ public sealed class MatchConfig
     public int StartingSettlers { get; init; } = 4;
     public int MapSize { get; init; } = 128;
 
+    /// <summary>Fuer Tests und Debug: Nebel des Krieges abschalten.</summary>
+    public bool FogOfWar { get; init; } = true;
+
     public ResourceSet StartingResources { get; init; } = new()
     {
-        Food = 200,
-        Wood = 200,
-        Stone = 100,
+        Food = 250,
+        Wood = 250,
+        Stone = 150,
         Gold = 100,
     };
 }
@@ -57,14 +60,13 @@ public static class MatchSetup
     public static Match Build(MatchConfig config, DefinitionDatabase definitions)
     {
         GeneratedMap map = MapGenerator.Generate(config.Seed, config.MapSize, config.MapSize);
-        var world = new SimulationWorld(definitions, map.Grid, config.Seed);
+        var world = new SimulationWorld(definitions, map.Grid, config.Seed)
+        {
+            Combat = definitions.Combat,
+        };
 
-        // Reihenfolge ist Absicht: erst Wege suchen, dann laufen, dann Ueberlappungen
-        // aufloesen, zuletzt produzieren — frische Einheiten bewegen sich erst im Folgetick.
-        world.AddSystem(new PathfindingSystem(map.Grid));
-        world.AddSystem(new MovementSystem(map.Grid));
-        world.AddSystem(new AvoidanceSystem(map.Grid));
-        world.AddSystem(new ProductionSystem());
+        RegisterSystems(world, map, config);
+        SpawnResourceNodes(world, map);
 
         for (int i = 0; i < config.Players.Count; i++)
         {
@@ -89,7 +91,37 @@ public static class MatchSetup
         // ersten Tick einen vollstaendigen Weltzustand sehen.
         world.FlushSpawns();
 
+        // Erste Sichtbarkeit setzen, sonst startet man im Schwarzen.
+        world.GetSystem<VisionSystem>()?.Tick(world, SimulationWorld.TickDelta);
+
         return new Match { World = world, Map = map };
+    }
+
+    /// <summary>
+    /// Reihenfolge der Systeme. Sie ist Teil der Spielregeln, nicht nebensaechlich:
+    /// Erst wird entschieden und gelaufen, dann gekaempft, zuletzt ausgewertet.
+    /// </summary>
+    private static void RegisterSystems(SimulationWorld world, GeneratedMap map, MatchConfig config)
+    {
+        world.AddSystem(new GatheringSystem());
+        world.AddSystem(new ConstructionSystem());
+        world.AddSystem(new CombatSystem());
+        world.AddSystem(new PathfindingSystem(map.Grid));
+        world.AddSystem(new MovementSystem(map.Grid));
+        world.AddSystem(new AvoidanceSystem(map.Grid));
+        world.AddSystem(new ProjectileSystem());
+        world.AddSystem(new ProductionSystem());
+        world.AddSystem(new AgeSystem());
+        world.AddSystem(new VisionSystem { Enabled = config.FogOfWar });
+        world.AddSystem(new VictorySystem());
+    }
+
+    private static void SpawnResourceNodes(SimulationWorld world, GeneratedMap map)
+    {
+        foreach (ResourceSpot spot in map.ResourceSpots)
+        {
+            world.SpawnResourceNode(spot.DefinitionId, spot.Position, spot.Rotation);
+        }
     }
 
     private static void SpawnStartingBase(SimulationWorld world, int ownerId, Vector2 position, int settlerCount)
@@ -98,7 +130,7 @@ public static class MatchSetup
         if (townCenter is null) return;
 
         // Siedler im Halbkreis vor dem Rathaus aufstellen.
-        const float radius = 6f;
+        const float radius = 7f;
         for (int i = 0; i < settlerCount; i++)
         {
             float angle = Mathf.Pi * (i + 0.5f) / settlerCount;
