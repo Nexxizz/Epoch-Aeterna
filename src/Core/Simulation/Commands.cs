@@ -110,7 +110,10 @@ public sealed class GatherCommand : ICommand
     public void Execute(SimulationWorld world)
     {
         ResourceNode? node = world.Entities.GetResourceNode(Node);
-        if (node is null || node.IsDepleted) return;
+        Building? farm = world.Entities.GetBuilding(Node);
+        bool validDeposit = node is not null && !node.IsDepleted;
+        bool validFarm = farm is { IsFarmReady: true } && farm.OwnerId == PlayerId;
+        if (!validDeposit && !validFarm) return;
 
         foreach (EntityId id in Units)
         {

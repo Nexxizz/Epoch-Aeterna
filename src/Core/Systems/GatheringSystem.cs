@@ -22,6 +22,8 @@ public sealed class GatheringSystem : ISimulationSystem
 
     public void Tick(SimulationWorld world, float deltaSeconds)
     {
+        AdvanceFarms(world, deltaSeconds);
+
         foreach (Unit unit in world.Entities.Units)
         {
             if (unit.Order != UnitOrder.Gather) continue;
@@ -40,6 +42,21 @@ public sealed class GatheringSystem : ISimulationSystem
     private static void WalkToNode(SimulationWorld world, Unit unit)
     {
         ResourceNode? node = world.Entities.GetResourceNode(unit.GatherTarget);
+
+        if (node is null && world.Entities.GetBuilding(unit.GatherTarget) is { IsFarmReady: true } farm)
+        {
+            float reach = farm.FootprintRadius + WorkRange + unit.Radius;
+            if (unit.Position.DistanceTo(farm.Position) <= reach)
+            {
+                unit.ClearPath();
+                unit.GatherPhase = GatherPhase.Harvesting;
+            }
+            else if (!unit.HasPath && !unit.NeedsPath)
+            {
+                unit.StartMoveTo(ApproachPoint(unit.Position, farm.Position, farm.FootprintRadius + WorkRange));
+            }
+            return;
+        }
 
         if (node is null || node.IsDepleted)
         {
@@ -67,6 +84,12 @@ public sealed class GatheringSystem : ISimulationSystem
     private static void Harvest(SimulationWorld world, Unit unit, float deltaSeconds)
     {
         ResourceNode? node = world.Entities.GetResourceNode(unit.GatherTarget);
+
+        if (node is null && world.Entities.GetBuilding(unit.GatherTarget) is { IsFarmReady: true } farm)
+        {
+            HarvestFarm(world, unit, farm, deltaSeconds);
+            return;
+        }
 
         if (node is null || node.IsDepleted)
         {
@@ -104,6 +127,23 @@ public sealed class GatheringSystem : ISimulationSystem
             node.ActiveGatherers = Mathf.Max(0, node.ActiveGatherers - 1);
             BeginReturn(world, unit);
         }
+    }
+
+    private static void HarvestFarm(SimulationWorld world, Unit unit, Building farm, float deltaSeconds)
+    {
+        unit.CarriedResource = ResourceType.Food;
+        unit.HarvestProgress += unit.GatherRatePerSecond * deltaSeconds;
+
+        int whole = Mathf.FloorToInt(unit.HarvestProgress);
+        if (whole > 0)
+        {
+            int taken = farm.ExtractFarmFood(whole);
+            unit.HarvestProgress -= whole;
+            unit.CarriedAmount += taken;
+            if (!farm.IsFarmReady) world.Events.RaiseFarmGrowthStageChanged(farm);
+        }
+
+        if (!farm.IsFarmReady || unit.IsCarryingFull) BeginReturn(world, unit);
     }
 
     // --- Return trip -----------------------------------------------------
@@ -172,6 +212,12 @@ public sealed class GatheringSystem : ISimulationSystem
             return;
         }
 
+        if (world.Entities.GetBuilding(unit.GatherTarget) is { IsFarmReady: true })
+        {
+            unit.GatherPhase = GatherPhase.ToNode;
+            return;
+        }
+
         if (!RetargetNearestNode(world, unit)) unit.Stop();
     }
 
@@ -182,7 +228,7 @@ public sealed class GatheringSystem : ISimulationSystem
     {
         ResourceType wanted = unit.CarriedResource;
 
-        ResourceNode? best = null;
+        EntityId best = EntityId.None;
         float bestDistance = float.MaxValue;
 
         foreach (ResourceNode candidate in world.Entities.ResourceNodes)
@@ -196,12 +242,25 @@ public sealed class GatheringSystem : ISimulationSystem
             if (distance >= bestDistance) continue;
 
             bestDistance = distance;
-            best = candidate;
+            best = candidate.Id;
         }
 
-        if (best is null) return false;
 
-        unit.GatherTarget = best.Id;
+        if (wanted == ResourceType.Food)
+        {
+            foreach (Building farm in world.Entities.Buildings)
+            {
+                if (farm.OwnerId != unit.OwnerId || !farm.IsFarmReady) continue;
+                float distance = unit.Position.DistanceSquaredTo(farm.Position);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = farm.Id;
+            }
+        }
+
+        if (best == EntityId.None) return false;
+
+        unit.GatherTarget = best;
         unit.GatherPhase = GatherPhase.ToNode;
         unit.ClearPath();
         return true;
@@ -225,6 +284,21 @@ public sealed class GatheringSystem : ISimulationSystem
         }
 
         return best;
+    }
+
+    private static void AdvanceFarms(SimulationWorld world, float deltaSeconds)
+    {
+        foreach (Building farm in world.Entities.Buildings)
+        {
+            if (!farm.IsFarmRegrowing || farm.FarmRegrowSeconds <= 0f) continue;
+
+            int stageBefore = farm.FarmGrowthStage;
+            farm.FarmRegrowProgress = Mathf.Min(1f,
+                farm.FarmRegrowProgress + deltaSeconds / farm.FarmRegrowSeconds);
+
+            if (farm.FarmRegrowProgress >= 1f) farm.RefillFarm();
+            if (farm.FarmGrowthStage != stageBefore) world.Events.RaiseFarmGrowthStageChanged(farm);
+        }
     }
 
     /// <summary>A point just short of the target — you walk up to the tree, not into it.</summary>

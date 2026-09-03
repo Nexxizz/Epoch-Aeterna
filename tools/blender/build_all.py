@@ -35,6 +35,8 @@ ASSETS = [
     "res_tree",
     "bld_towncenter",
     "bld_house",
+    "bld_storehouse",
+    "bld_farm",
     "unit_settler",
 ]
 

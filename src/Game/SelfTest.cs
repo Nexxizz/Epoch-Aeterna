@@ -88,6 +88,20 @@ public static class SelfTest
         Check("House has all three construction stage models",
             house?.ConstructionStageScenes.Length == Building.ConstructionStages &&
             Array.TrueForAll(house.ConstructionStageScenes, scene => scene is not null));
+
+        BuildingDefinition? storehouse = definitions.GetBuilding("bld_storehouse");
+        Check("Storehouse build-menu image loaded", storehouse?.Icon is not null);
+        Check("Storehouse finished model loaded", storehouse?.ModelScene is not null);
+        Check("Storehouse has all three construction stage models",
+            storehouse?.ConstructionStageScenes.Length == Building.ConstructionStages &&
+            Array.TrueForAll(storehouse.ConstructionStageScenes, scene => scene is not null));
+
+        BuildingDefinition? farm = definitions.GetBuilding("bld_farm");
+        Check("Farm build-menu image loaded", farm?.Icon is not null);
+        Check("Farm finished model loaded", farm?.ModelScene is not null);
+        Check("Farm has all three growth stage models",
+            farm?.ConstructionStageScenes.Length == Building.ConstructionStages &&
+            Array.TrueForAll(farm.ConstructionStageScenes, scene => scene is not null));
     }
 
     // --- Phase 2: grid ---------------------------------------------------

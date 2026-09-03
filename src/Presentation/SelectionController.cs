@@ -282,6 +282,14 @@ public sealed partial class SelectionController : Node
                 _views?.FlashCommandMarker(site.Position, WorkMarker);
                 return;
 
+            case Building { IsFarmReady: true } farm when farm.OwnerId == _localPlayerId:
+                _world.Commands.Enqueue(new GatherCommand
+                {
+                    PlayerId = _localPlayerId, Units = units, Node = farm.Id,
+                });
+                _views?.FlashCommandMarker(farm.Position, WorkMarker);
+                return;
+
             case not null when hit.OwnerId != _localPlayerId && hit.OwnerId != 0:
                 _world.Commands.Enqueue(new AttackCommand
                 {

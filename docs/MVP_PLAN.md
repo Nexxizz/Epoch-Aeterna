@@ -212,7 +212,8 @@ EpochAeterna/
 - [x] Automatische Suche des nächsten gleichartigen Knotens, wenn der aktuelle erschöpft ist
 - [x] Abgabestellen: Rathaus und Lagerhaus, jeweils die nächstgelegene
 - [x] Visuelles Feedback: Baum schrumpft sichtbar, Ertrag steigt als Zahl auf
-- [ ] Farm als erneuerbare Nahrungsquelle — Gebäude und Definition stehen, das Wiederbestellen fehlt
+- [x] Farm als erneuerbare Nahrungsquelle — Siedler ernten per Rechtsklick; nach Erschöpfung
+  wächst das Feld automatisch sichtbar durch drei Stufen nach
 
 > Jede Startbasis bekommt garantiert alle vier Ressourcen in Reichweite. Ohne diese
 > Zusicherung entscheidet der Zufall die Partie, bevor sie beginnt — der Selbsttest
@@ -320,7 +321,7 @@ EpochAeterna/
   |---|---|---|
   | Ressourcenvorkommen, Requisiten | 150–800 | Baum 268 |
   | Einheiten | kein starres Limit — visuelle Lesbarkeit hat Vorrang | Siedler 3.830 |
-  | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | Richtwert 1.500–4.000; Lesbarkeit hat Vorrang | Haus 9.032 |
+  | Kleine Gebäude (Haus, Lagerhaus, Wachturm) | Richtwert 1.500–4.000; Lesbarkeit hat Vorrang | Haus 9.032; Lagerhaus 7.636 |
   | Große Gebäude (Rathaus, Kaserne, Schießstand) | 4.000–10.000 | Rathaus 6.734 |
 
   Die Vorkommen sind der eigentliche Posten: Auf einer 128×128-Karte stehen rund 280 davon,
@@ -353,8 +354,8 @@ EpochAeterna/
 
 **Pipeline-Validierung** — Punkt 4 der Umsetzungsreihenfolge ist erledigt:
 
-Vier Assets sind komplett durch die Kette gelaufen; beim Haus außerdem alle Baustufen und das
-Trümmer-Mesh.
+Sechs Assets sind komplett durch die Kette gelaufen; Haus und Lagerhaus besitzen Baustufen,
+die Farm teilt dieselben drei Modelle zwischen Aufbau und sichtbarem Nachwachsen.
 
 | Asset | Dreiecke | Besonderheit |
 |---|---|---|
@@ -362,6 +363,8 @@ Trümmer-Mesh.
 | `bld_towncenter` | 6.734 | Grundfläche exakt 8 m = 4 Kacheln, vier Materialien, Team-Color-Banner |
 | `unit_settler` | 3.830 | detailliertes Armature-Modell, aufgabenspezifische Ausrüstung, 10 Animationsclips |
 | `bld_house` | 9.032 | drei konsistente Baustufen (824 / 7.156 / 8.572), fertiges Modell und Trümmer-Mesh (1.476) |
+| `bld_storehouse` | 7.636 | Laderampe und sichtbare Vorräte, Baustufen (880 / 4.040 / 5.404), Trümmer-Mesh (2.268) |
+| `bld_farm` | 8.448 | 3×3-Kachel-Feld, Wachstumsstufen (1.568 / 2.820 / 5.088), Erntekörbe und Teammarker |
 
 ```bash
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py
@@ -369,11 +372,11 @@ Trümmer-Mesh.
 
 | Prüfung | Ergebnis |
 |---|---|
-| Blender-Build | 4/4 Assets samt Hausvarianten, keine Warnungen |
+| Blender-Build | 6/6 Assets samt Gebäudevarianten, keine Exportfehler |
 | Godot-Import | fehlerfrei |
 | Animationsclips | `Idle`, `Walk`, `Run`, `Carry_Walk`, `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Attack`, `Death` + Skeleton3D bestätigt |
 | Team-Color | Banner und Siedler nehmen die Spielerfarbe an |
-| Selbsttest | 131/131, Exit-Code 0 |
+| Selbsttest | 140/140, Exit-Code 0 |
 
 > Genau die Fehler, die der Plan an dieser Stelle vorhergesagt hat, sind aufgetreten —
 > und zwar an drei Assets statt an sechzehn:
@@ -510,8 +513,8 @@ Trümmer-Mesh.
 |---|---|---|---|---|
 | 1 | **Rathaus** | 1 | Siedler ausbilden, Abgabestelle, Zeitalteraufstieg | [x] Modell [ ] Baustufen [ ] Zeitalter-2-Variante [x] Ingame |
 | 2 | **Haus** | 1 | +10 Bevölkerungslimit | [x] Modell [x] Baustufen [x] Ingame |
-| 3 | **Lagerhaus** | 1 | Abgabestelle für Holz / Stein / Gold | [ ] Modell [ ] Baustufen [ ] Ingame |
-| 4 | **Farm** | 1 | Erneuerbare Nahrungsquelle | [ ] Modell [ ] Wachstumsstufen [ ] Ingame |
+| 3 | **Lagerhaus** | 1 | Abgabestelle für Holz / Stein / Gold | [x] Modell [x] Baustufen [x] Ingame |
+| 4 | **Farm** | 1 | Erneuerbare Nahrungsquelle | [x] Modell [x] Wachstumsstufen [x] Ingame |
 | 5 | **Kaserne** | 1 | Nahkampfeinheiten | [ ] Modell [ ] Baustufen [ ] Ingame |
 | 6 | **Schießstand** | 2 | Fernkampfeinheiten | [ ] Modell [ ] Baustufen [ ] Ingame |
 | 7 | **Wachturm** | 2 | Verteidigung, schießt automatisch, große Sichtweite | [ ] Modell [ ] Baustufen [ ] Ingame |
@@ -521,6 +524,7 @@ Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footpri
 - [x] Beim ausgewählten Siedler zeigt ein kontextuelles Bau-Menü das fertige Haus als anklickbares
   Bild. Der Klick startet die eingefärbte Modellvorschau; ein gültiger Linksklick platziert die
   Baustelle und weist die ausgewählten Siedler direkt als Bauarbeiter zu.
+- [x] Haus, Lagerhaus und Farm stehen mit Bild, Kosten und Beschreibung im Siedler-Baumenü.
 
 ### 5.2 Einheiten (6)
 

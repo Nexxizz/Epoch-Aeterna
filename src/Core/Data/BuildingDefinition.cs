@@ -42,4 +42,7 @@ public partial class BuildingDefinition : EntityDefinition
     [Export] public bool IsFarm { get; set; }
 
     [Export] public int FarmFoodAmount { get; set; } = 250;
+
+    /// <summary>Seconds from an exhausted field to a new full harvest.</summary>
+    [Export] public float FarmRegrowSeconds { get; set; } = 45f;
 }

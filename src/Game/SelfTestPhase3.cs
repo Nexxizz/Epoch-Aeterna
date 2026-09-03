@@ -41,6 +41,9 @@ public static class SelfTestPhase3
         section("Phase 3 — Resource economy");
         CheckGathering(definitions, check);
 
+        section("Phase 3 — Renewable farm");
+        CheckFarm(definitions, check);
+
         section("Phase 3 — Construction");
         CheckConstruction(definitions, check);
 
@@ -132,6 +135,39 @@ public static class SelfTestPhase3
         check("Wood was delivered", player.GetResource(ResourceType.Wood) > woodBefore);
         check("Yield recorded in statistics", player.Stats.GetGathered(ResourceType.Wood) > 0);
         check("Settler continues gathering", settler.Order == UnitOrder.Gather);
+    }
+
+    // --- Renewable farm -------------------------------------------------
+
+    private static void CheckFarm(DefinitionDatabase definitions, System.Action<string, bool> check)
+    {
+        Match match = NewMatch(definitions, 4712);
+        SimulationWorld world = match.World;
+        Player player = world.Players[0];
+        Unit settler = FindUnit(world, player.Id, "unit_settler")!;
+
+        Building farm = world.SpawnBuilding(
+            "bld_farm", player.Id, settler.Position + new Vector2(10f, 0f))!;
+        world.FlushSpawns();
+
+        check("Finished farm starts ready for harvest",
+            farm.IsFarmReady && farm.FarmFoodRemaining == farm.FarmFoodCapacity);
+
+        int foodBefore = player.GetResource(ResourceType.Food);
+        world.Commands.Enqueue(new GatherCommand
+        {
+            PlayerId = player.Id, Units = new[] { settler.Id }, Node = farm.Id,
+        });
+        for (int i = 0; i < 2000 && player.GetResource(ResourceType.Food) == foodBefore; i++) world.Tick();
+
+        check("Settler harvests and delivers farm food",
+            farm.FarmFoodRemaining < farm.FarmFoodCapacity &&
+            player.GetResource(ResourceType.Food) > foodBefore);
+
+        farm.ExtractFarmFood(farm.FarmFoodRemaining);
+        int regrowTicks = Mathf.CeilToInt(farm.FarmRegrowSeconds / SimulationWorld.TickDelta) + 2;
+        for (int i = 0; i < regrowTicks; i++) world.Tick();
+        check("Exhausted farm regrows to a full harvest", farm.IsFarmReady);
     }
 
     // --- Construction ----------------------------------------------------

@@ -25,6 +25,7 @@ public sealed class GameEvents
     public event Action<Building>? ConstructionStageChanged;
 
     public event Action<Building>? ConstructionCompleted;
+    public event Action<Building>? FarmGrowthStageChanged;
 
     /// <summary>A settler delivered — the basis for the rising number text.</summary>
     public event Action<Unit, ResourceType, int>? ResourceDelivered;
@@ -52,6 +53,9 @@ public sealed class GameEvents
 
     internal void RaiseConstructionCompleted(Building building) =>
         ConstructionCompleted?.Invoke(building);
+
+    internal void RaiseFarmGrowthStageChanged(Building farm) =>
+        FarmGrowthStageChanged?.Invoke(farm);
 
     internal void RaiseResourceDelivered(Unit unit, ResourceType type, int amount) =>
         ResourceDelivered?.Invoke(unit, type, amount);

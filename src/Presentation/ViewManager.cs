@@ -51,6 +51,7 @@ public sealed partial class ViewManager : Node3D
         world.Events.EntityRemoved += OnEntityRemoved;
         world.Events.ConstructionStageChanged += OnConstructionChanged;
         world.Events.ConstructionCompleted += OnConstructionChanged;
+        world.Events.FarmGrowthStageChanged += OnConstructionChanged;
 
         // Pick up anything that already existed before subscribing.
         foreach (Entity entity in world.Entities.All()) OnEntitySpawned(entity);
@@ -63,6 +64,7 @@ public sealed partial class ViewManager : Node3D
         _world.Events.EntityRemoved -= OnEntityRemoved;
         _world.Events.ConstructionStageChanged -= OnConstructionChanged;
         _world.Events.ConstructionCompleted -= OnConstructionChanged;
+        _world.Events.FarmGrowthStageChanged -= OnConstructionChanged;
     }
 
     public override void _Process(double delta)
@@ -163,6 +165,16 @@ public sealed partial class ViewManager : Node3D
         {
             ApplyTeamColor(stageModel, entity.OwnerId);
             return stageModel;
+        }
+
+        if (entity is Building { IsFarmRegrowing: true } farm &&
+            definition is BuildingDefinition farmDefinition &&
+            farm.FarmGrowthStage < farmDefinition.ConstructionStageScenes.Length &&
+            farmDefinition.ConstructionStageScenes[farm.FarmGrowthStage] is { } growthScene &&
+            growthScene.Instantiate() is Node3D growthModel)
+        {
+            ApplyTeamColor(growthModel, entity.OwnerId);
+            return growthModel;
         }
 
         if (definition?.ModelScene is not null &&

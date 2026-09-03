@@ -28,6 +28,18 @@ public sealed class Building : Entity
     public bool IsDropOffPoint { get; set; }
     public bool CanAdvanceAge { get; set; }
     public bool IsFarm { get; set; }
+    public int FarmFoodCapacity { get; set; }
+    public int FarmFoodRemaining { get; private set; }
+    public float FarmRegrowSeconds { get; set; } = 45f;
+    public float FarmRegrowProgress { get; set; } = 1f;
+
+    public bool IsFarmReady => IsFarm && !IsUnderConstruction && FarmFoodRemaining > 0;
+    public bool IsFarmRegrowing => IsFarm && !IsUnderConstruction && FarmFoodRemaining <= 0;
+
+    /// <summary>0..2 while regrowing, 3 when ready for harvest.</summary>
+    public int FarmGrowthStage => IsFarmReady
+        ? ConstructionStages
+        : Mathf.Clamp((int)(FarmRegrowProgress * ConstructionStages), 0, ConstructionStages - 1);
 
     // --- Defence ---------------------------------------------------------
 
@@ -82,6 +94,9 @@ public sealed class Building : Entity
         IsDropOffPoint = definition.IsDropOffPoint;
         CanAdvanceAge = definition.CanAdvanceAge;
         IsFarm = definition.IsFarm;
+        FarmFoodCapacity = definition.FarmFoodAmount;
+        FarmFoodRemaining = definition.IsFarm ? definition.FarmFoodAmount : 0;
+        FarmRegrowSeconds = definition.FarmRegrowSeconds;
         BuildTimeSeconds = definition.BuildTimeSeconds;
 
         AttackDamage = definition.AttackDamage;
@@ -106,4 +121,19 @@ public sealed class Building : Entity
 
     /// <summary>Where a finished unit appears: just outside the footprint.</summary>
     public Vector2 SpawnPoint() => Position + new Vector2(0f, FootprintRadius + 1.5f);
+
+    public int ExtractFarmFood(int requested)
+    {
+        if (!IsFarmReady || requested <= 0) return 0;
+        int taken = Mathf.Min(requested, FarmFoodRemaining);
+        FarmFoodRemaining -= taken;
+        if (FarmFoodRemaining == 0) FarmRegrowProgress = 0f;
+        return taken;
+    }
+
+    public void RefillFarm()
+    {
+        FarmFoodRemaining = FarmFoodCapacity;
+        FarmRegrowProgress = 1f;
+    }
 }
