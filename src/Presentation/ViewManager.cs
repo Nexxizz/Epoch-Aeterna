@@ -127,7 +127,7 @@ public sealed partial class ViewManager : Node3D
 
         var view = new EntityView { Name = $"View_{entity.Id.Value}_{entity.DefinitionId}" };
         AddChild(view);
-        view.Bind(entity, _runner, _world.Nav, BuildModel(entity));
+        view.Bind(entity, _runner, _world.Nav, BuildModel(entity), _world.Random);
 
         _views[entity.Id.Value] = view;
     }
@@ -141,7 +141,11 @@ public sealed partial class ViewManager : Node3D
     /// <summary>Baustufe erreicht oder fertig — das Modell wird ausgetauscht.</summary>
     private void OnConstructionChanged(Building building)
     {
-        if (_views.TryGetValue(building.Id.Value, out EntityView? view)) view.ReplaceModel(BuildModel(building));
+        if (_world is null) return;
+        if (_views.TryGetValue(building.Id.Value, out EntityView? view))
+        {
+            view.ReplaceModel(BuildModel(building), _world.Random);
+        }
     }
 
     // --- Modelle ---------------------------------------------------------
@@ -155,6 +159,7 @@ public sealed partial class ViewManager : Node3D
             entity is not Building { IsUnderConstruction: true } &&
             definition.ModelScene.Instantiate() is Node3D model)
         {
+            ApplyTeamColor(model, entity.OwnerId);
             return model;
         }
 
@@ -252,6 +257,35 @@ public sealed partial class ViewManager : Node3D
         });
 
         return instance;
+    }
+
+    /// <summary>
+    /// Recolours the parts of an imported model that carry the team-colour material.
+    /// </summary>
+    /// <remarks>
+    /// The Blender pipeline marks those surfaces by material name
+    /// (<c>MAT_teamcolor</c>) rather than by mesh name or slot index. A name
+    /// survives geometry edits; a slot index does not.
+    /// </remarks>
+    private void ApplyTeamColor(Node node, int ownerId)
+    {
+        if (node is MeshInstance3D instance && instance.Mesh is not null)
+        {
+            StandardMaterial3D playerMaterial = GetPlayerMaterial(ownerId);
+
+            for (int surface = 0; surface < instance.Mesh.GetSurfaceCount(); surface++)
+            {
+                Material? material = instance.Mesh.SurfaceGetMaterial(surface);
+                if (material is null) continue;
+
+                if (material.ResourceName.Contains("teamcolor", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    instance.SetSurfaceOverrideMaterial(surface, playerMaterial);
+                }
+            }
+        }
+
+        foreach (Node child in node.GetChildren()) ApplyTeamColor(child, ownerId);
     }
 
     private static StandardMaterial3D ConstructionMaterial() => new()

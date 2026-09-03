@@ -16,7 +16,6 @@ The detailed implementation plan is available in **[docs/MVP_PLAN.md](docs/MVP_P
 | Blender | 5.2 | `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe` |
 | Git LFS | 3.7.1 | — |
 
-> ⚠️ `C:\Program Files\Godot` also contains **Godot 4.4.1 without C# support**.
 > Always use the build in `C:\Godot` for this project.
 > You can identify it by `.mono.` in the `--version` output and a `GodotSharp/`
 > directory next to the executable.
@@ -93,8 +92,8 @@ CI-friendly):
 | `F1` / `F2` / `F3` | Train Settler / Scout / Spearman |
 | `F4` | Start advancing to the next age |
 
-**Other:** `Space` pauses the game, `+` / `-` change the speed (0.5× to 2×), and
-`Esc` quits.
+**Other:** `Space` pauses the game, `+` / `-` change the speed (0.5× to 2×), `F5` cycles
+the graphics preset (Low / Medium / High), and `Esc` quits.
 
 > `WASD` is deliberately unassigned because the letter keys are used for unit
 > commands (`A` Attack Move, `S` Stop, `H` Hold), as in Empire Earth and Age of
@@ -102,12 +101,53 @@ CI-friendly):
 
 ## Build Blender assets
 
-All models are generated procedurally by `bpy` scripts (starting in Phase 4), rather
-than modelled by hand. Run the generator headlessly:
+All models are generated procedurally by `bpy` scripts rather than modelled by hand.
+That makes the source of truth a diffable script, turns a change of proportions into a
+one-line edit that regenerates everything consistently, and means nobody has to open
+Blender to rebuild the game's art.
 
 ```bash
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py
 ```
+
+Single assets:
+
+```bash
+"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py -- unit_settler
+```
+
+Then import into Godot:
+
+```bash
+"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --editor --quit --path .
+```
+
+### Conventions
+
+| Rule | Value |
+|---|---|
+| Scale | 1 Blender unit = 1 metre |
+| Facing | -Y in Blender (becomes Godot's -Z) |
+| Origin | centre of the footprint, lowest point at z = 0 |
+| Export | glTF 2.0 binary (`.glb`), "+Y Up", animations as NLA strips |
+| Naming | materials `MAT_*`, armatures `SK_*` |
+| Team colour | material **`MAT_teamcolor`** — `ViewManager` replaces its albedo with the player's colour |
+| File name | matches the definition id (`unit_settler.glb` belongs to `unit_settler.tres`) |
+
+### Layout
+
+| File | Purpose |
+|---|---|
+| `lib_scene.py` | scene reset and export — the conventions live here, in one place |
+| `lib_mesh.py` | primitives, bevel/smooth pass, joining, grounding an asset |
+| `lib_material.py` | PBR palette and the team-colour material |
+| `lib_rig.py` | shared humanoid armature, automatic weights |
+| `lib_anim.py` | animation clips written as tables of poses |
+| `assets/*.py` | one script per asset |
+| `build_all.py` | entry point |
+
+A model is used automatically once its `.tres` points `ModelScene` at the `.glb`.
+Without one, `ViewManager` falls back to placeholder geometry — both work side by side.
 
 ## Project structure
 

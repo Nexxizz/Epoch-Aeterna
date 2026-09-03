@@ -18,6 +18,7 @@ public sealed partial class EntityView : Node3D
     private NavGrid? _grid;
 
     private Node3D? _model;
+    private ModelAnimator? _animator;
     private MeshInstance3D? _selectionRing;
     private HealthBar? _healthBar;
 
@@ -25,22 +26,27 @@ public sealed partial class EntityView : Node3D
 
     public Entity? Entity => _entity;
 
-    public void Bind(Entity entity, SimulationRunner runner, NavGrid grid, Node3D model)
+    public void Bind(Entity entity, SimulationRunner runner, NavGrid grid, Node3D model,
+        RandomNumberGenerator random)
     {
         _entity = entity;
         _runner = runner;
         _grid = grid;
         _model = model;
         AddChild(model);
+
+        _animator = new ModelAnimator(model, random);
         SyncTransform(1f);
     }
 
     /// <summary>Tauscht das Modell aus — fuer Baustufen und Zeitalter-Varianten.</summary>
-    public void ReplaceModel(Node3D model)
+    public void ReplaceModel(Node3D model, RandomNumberGenerator random)
     {
         _model?.QueueFree();
         _model = model;
         AddChild(model);
+
+        _animator = new ModelAnimator(model, random);
     }
 
     public override void _Process(double delta)
@@ -49,6 +55,8 @@ public sealed partial class EntityView : Node3D
 
         SyncTransform(_runner.IsPaused ? 1f : _runner.InterpolationAlpha);
         SyncHealthBar();
+
+        if (_entity is Unit unit) _animator?.Sync(unit);
     }
 
     private void SyncTransform(float alpha)

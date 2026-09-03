@@ -22,6 +22,7 @@ public partial class Main : Node3D
     private TerrainRenderer? _terrain;
     private DecorationRenderer? _decorations;
     private Node3D? _worldRoot;
+    private GraphicsSettings? _graphics;
 
     private SimulationWorld? World => _match?.World;
 
@@ -45,8 +46,27 @@ public partial class Main : Node3D
             return;
         }
 
+        SetupGraphics();
         StartMatch();
         SetupScreenshotMode();
+    }
+
+    /// <summary>
+    /// Hooks the quality presets up to the scene's environment and sun.
+    /// </summary>
+    /// <remarks>
+    /// Lives outside <see cref="StartMatch"/> because it belongs to the scene,
+    /// not to a match — restarting should not reset the player's quality choice.
+    /// </remarks>
+    private void SetupGraphics()
+    {
+        var worldEnvironment = GetNodeOrNull<WorldEnvironment>("WorldEnvironment");
+        var sun = GetNodeOrNull<DirectionalLight3D>("Sun");
+        if (worldEnvironment is null || sun is null) return;
+
+        _graphics = new GraphicsSettings { Name = "GraphicsSettings" };
+        AddChild(_graphics);
+        _graphics.Attach(worldEnvironment, sun);
     }
 
     // --- Aufbau ----------------------------------------------------------
@@ -183,6 +203,10 @@ public partial class Main : Node3D
             case Key.R: _placement?.Begin("bld_range"); break;
 
             case Key.Delete: DemolishSelected(); break;
+
+            case Key.F5:
+                if (_graphics is not null) GD.Print($"[Graphics] preset: {_graphics.Cycle()}");
+                break;
         }
     }
 

@@ -305,33 +305,68 @@ EpochAeterna/
 
 ### 4.1 Konventionen festschreiben
 
-- [ ] Maßstab: **1 Blender-Einheit = 1 Meter**, alle Transforms applied, Origin = Bodenmittelpunkt
-- [ ] Ausrichtung: Modell schaut in Blender nach **−Y** (wird beim glTF-Export zu Godots "forward" = −Z)
-- [ ] Namensschema: `bld_towncenter_age1`, `unt_spearman`, `SK_` für Armatures, `MAT_` für Materialien
-- [ ] Export: **glTF 2.0 binary (`.glb`)**, "+Y Up", nur ausgewählte Collection, Animationen als NLA-Strips
-- [ ] Polybudget: Einheiten 1,5k–3k Tris · Gebäude 4k–10k Tris · LOD1/LOD2 über Godots Auto-LOD
-- [ ] Texturen: PBR, **ORM-gepackt** (R = AO, G = Roughness, B = Metallic) plus Albedo und Normal
-  - Gebäude 2048² · Einheiten 1024² · gemeinsame Trim-/Atlas-Sheets pro Fraktion
-- [ ] Team-Color: dedizierter Maskenkanal (Alpha des Albedo) statt separater Textur
-- [ ] Ein Material pro Objekt (Draw-Call-Reduktion), Godot-Import-Presets (`.import`) mit versionieren
+- [x] Maßstab: **1 Blender-Einheit = 1 Meter**, alle Transforms applied, Origin = Bodenmittelpunkt
+- [x] Ausrichtung: Modell schaut in Blender nach **−Y**, wird beim glTF-Export zu Godots −Z
+- [x] Namensschema: `SK_` für Armatures, `MAT_` für Materialien
+  - **Abweichung:** Die `.glb`-Dateinamen entsprechen den Definitions-IDs (`unit_settler.glb`, nicht `unt_settler`). Damit ist das Modell eindeutig seiner `.tres` zugeordnet.
+- [x] Export: **glTF 2.0 binary (`.glb`)**, „+Y Up", nur Auswahl, Animationen als NLA-Strips
+- [x] Polybudget wird bei jedem Build gemessen und ausgegeben
+- [x] Team-Color über ein eigens benanntes Material `MAT_teamcolor`
+  - **Abweichung:** Der Plan sah eine Maske im Alphakanal des Albedo vor. Ohne Texturen gäbe es dafür noch keinen Kanal; ein Materialname funktioniert sofort, überlebt Geometrieänderungen und lässt sich später zusätzlich mit einer Maske kombinieren.
+- [x] Ein Material pro Objekt, `.import`-Presets werden mitversioniert
+- [ ] PBR-Texturen mit ORM-Packing — braucht erst Texturen (Phase 5)
 
 ### 4.2 Werkzeuge
 
-- [ ] `tools/blender/lib_mesh.py` — Hilfsfunktionen (Quader, Bogen, Dachstuhl, Palisade, Bevel-+-Weighted-Normals-Stack)
-- [ ] `tools/blender/lib_material.py` — prozedurale PBR-Materialien (Holz, Stroh, Lehm, Stein, Metall, Stoff) via Shader-Nodes, anschließend auf Texturen gebacken
-- [ ] `tools/blender/lib_rig.py` — humanoides Standard-Armature (Root, Hips, Spine, Head, 2× Arm, 2× Bein), automatische Gewichtung
-- [ ] `tools/blender/lib_anim.py` — Keyframe-Generator für die Standard-Animationen
-- [ ] `tools/blender/build_all.py` — baut alle Assets und exportiert nach `assets/models/`
-- [ ] Bake-Schritt: High-Poly-Detail → Normal-Map auf das Low-Poly
-- [ ] Import-Test in Godot: Maßstab, Ausrichtung, Materialien und Animationen korrekt
+- [x] `tools/blender/lib_scene.py` — Szenen-Reset, Exportkonventionen an einer Stelle
+- [x] `tools/blender/lib_mesh.py` — Grundkörper, Bevel-/Smooth-Nachbearbeitung, Verschmelzen, Gründung
+- [x] `tools/blender/lib_material.py` — PBR-Palette (Holz, Rinde, Laub, Stroh, Lehm, Stein, Metall, Stoff, Haut) plus Team-Color
+- [x] `tools/blender/lib_rig.py` — humanoides Standard-Armature, automatische Gewichtung
+- [x] `tools/blender/lib_anim.py` — Keyframe-Generator, Clips als NLA-Strips
+- [x] `tools/blender/build_all.py` — baut alle Assets, einzeln ansteuerbar, Fehler stoppen den Lauf nicht
+- [x] Import-Test in Godot: Maßstab, Ausrichtung, Materialien und Animationen bestätigt
+- [ ] Bake-Schritt High-Poly → Normal-Map — braucht High-Poly-Quellen (Phase 5)
 
 ### 4.3 Realistischer Look (Godot-Seite)
 
-- [ ] `WorldEnvironment`: HDRI-Sky, SSAO, SSIL, SDFGI oder VoxelGI, Glow, Tonemap ACES
-- [ ] Direktionales Licht mit Schattenkaskaden, sinnvoller Sonnenstand (schräg, weiche Schatten)
-- [ ] TAA + FXAA
-- [ ] Grafik-Presets Niedrig / Mittel / Hoch (GI und Schatten abschaltbar)
-- [ ] Sichtprüfung: Screenshot bei typischer Kameradistanz — sind Gebäude eindeutig unterscheidbar?
+- [x] `WorldEnvironment`: Sky, SSAO, SSIL, SDFGI, Glow, Tonemap ACES
+- [x] Direktionales Licht mit Schattenkaskaden (2 bzw. 4 Splits je nach Stufe)
+- [x] TAA + FXAA
+- [x] Grafik-Presets **Niedrig / Mittel / Hoch**, zur Laufzeit über `F5` umschaltbar
+- [x] Sichtprüfung per Screenshot
+
+**Pipeline-Validierung** — Punkt 4 der Umsetzungsreihenfolge ist erledigt:
+
+Drei Assets sind komplett durch die Kette gelaufen, bevor die restlichen entstehen.
+
+| Asset | Dreiecke | Besonderheit |
+|---|---|---|
+| `res_tree` | 268 | Geometrie und Origin-Konvention |
+| `bld_towncenter` | 872 | Grundfläche exakt 8 m = 4 Kacheln, fünf Materialien, Team-Color-Banner |
+| `unit_settler` | 1.404 | Armature, automatische Gewichtung, 4 Animationsclips |
+
+```bash
+"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python tools/blender/build_all.py
+```
+
+| Prüfung | Ergebnis |
+|---|---|
+| Blender-Build | 3/3 Assets, keine Warnungen |
+| Godot-Import | fehlerfrei |
+| Animationsclips | `Idle`, `Walk`, `Gather_Chop`, `Death` + Skeleton3D bestätigt |
+| Team-Color | Banner und Siedler nehmen die Spielerfarbe an |
+| Selbsttest | 126/126, Exit-Code 0 |
+
+> Genau die Fehler, die der Plan an dieser Stelle vorhergesagt hat, sind aufgetreten —
+> und zwar an drei Assets statt an sechzehn:
+>
+> 1. **Das Rathaus fiel in sich zusammen.** Ich habe jede Materialgruppe einzeln
+>    „auf den Boden gesetzt", wodurch Sockel, Wände, Dach und Banner alle auf z = 0
+>    landeten. Gründung muss für das Asset als Ganzes passieren.
+> 2. **glTF meldete ungültige Meshes.** Zwei Ursachen: Beim Verschmelzen überlebt nur
+>    der Modifier-Stack des ersten Objekts und wird beim Export auf alles angewendet;
+>    und die automatische Gewichtung hinterlässt inkonsistente Mesh-Daten. Bevel wird
+>    jetzt sofort angewendet, `validate()` läuft nach dem Binden.
 
 ---
 
@@ -466,7 +501,7 @@ Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 1. **Phase 0** → Projekt läuft
 2. **Phase 1** → Grundgerüst steht (wichtigster Schritt, hier nicht sparen)
 3. **Phase 2** → man kann sich auf einer Karte umsehen und Platzhalter-Würfel selektieren und bewegen
-4. **Erste Assets aus Phase 4/5**: Siedler + Rathaus + Baum — damit ist die Blender→Godot-Pipeline validiert, *bevor* 13 Assets gebaut werden
+4. ~~**Erste Assets aus Phase 4/5**: Siedler + Rathaus + Baum~~ — **erledigt**, Pipeline validiert
 5. **Phase 3.1–3.3** → Wirtschaftskreislauf spielbar (sammeln, bauen, ausbilden)
 6. **Restliche Assets** aus Phase 5
 7. **Phase 3.4–3.7** → Kampf, Zeitalter, Fog of War, Siegbedingung
