@@ -75,7 +75,7 @@ public sealed partial class MatchEndScreen : CanvasLayer
             won ? new Color(0.5f, 0.95f, 0.55f) : new Color(0.95f, 0.45f, 0.4f));
 
         _body.Text = BuildStatistics(_world);
-        _hint.Text = "\n\nEnter — new match      Esc — quit";
+        _hint.Text = "\n\nEnter — new match      Esc — main menu";
 
         Layout();
         Visible = true;

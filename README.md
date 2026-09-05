@@ -48,13 +48,22 @@ Run the simulation self-test without a window or SceneTree (CI-friendly; exit co
 ```
 
 Capture a screenshot without interaction (checks lighting and scene setup and is
-CI-friendly):
+CI-friendly). It skips the main menu and drops straight into a match:
 
 ```bash
 "C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --path . -- "--shot=C:/temp/shot.png"
 ```
 
-## Controls (Phase 3)
+Start a match directly, without the main menu:
+
+```bash
+"C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --path . -- --skip-menu
+```
+
+## Controls
+
+Every key listed here is an InputMap action and can be reassigned under
+**Options → Tastenbelegung**. The defaults are below.
 
 **Camera**
 
@@ -65,6 +74,7 @@ CI-friendly):
 | Mouse wheel | Zoom; camera pitch adjusts with it |
 | `Q` / `E` | Rotate |
 | `Home` | Jump to your base |
+| Click or drag on the minimap | Move the view there |
 
 **Selection and commands**
 
@@ -93,7 +103,9 @@ CI-friendly):
 | `F4` | Start advancing to the next age |
 
 **Other:** `Space` pauses the game, `+` / `-` change the speed (0.5× to 2×), `F5` cycles
-the graphics preset (Low / Medium / High), and `Esc` quits.
+the graphics preset (Low / Medium / High), `F10` shows the diagnostic readout, and `Esc`
+opens the pause menu — or steps back out of a building preview, the options or the end
+screen first.
 
 > `WASD` is deliberately unassigned because the letter keys are used for unit
 > commands (`A` Attack Move, `S` Stop, `H` Hold), as in Empire Earth and Age of

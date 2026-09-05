@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using System.Text;
 using Godot;
 using EpochAeterna.Core.Data;
 using EpochAeterna.Core.Entities;
 using EpochAeterna.Core.Simulation;
+using EpochAeterna.UI;
 
 namespace EpochAeterna.Presentation;
 
@@ -24,6 +24,7 @@ public sealed partial class TrainingMenu : CanvasLayer
 
     private SimulationWorld? _world;
     private SelectionController? _selection;
+    private NotificationFeed? _notifications;
     private int _localPlayerId;
     private string _feedback = string.Empty;
     private double _feedbackSeconds;
@@ -31,28 +32,28 @@ public sealed partial class TrainingMenu : CanvasLayer
     public override void _Ready()
     {
         Layer = 4;
+
+        // Shares the action area with the build menu — only one of the two is ever
+        // visible, because a settler and a building cannot be selected at once.
         _panel.Name = "TrainingMenu";
+        _panel.AnchorLeft = 1f;
+        _panel.AnchorRight = 1f;
         _panel.AnchorTop = 1f;
         _panel.AnchorBottom = 1f;
-        _panel.OffsetLeft = 20f;
-        _panel.OffsetTop = -305f;
-        _panel.OffsetRight = 550f;
-        _panel.OffsetBottom = -20f;
+        _panel.OffsetLeft = HudTheme.ActionRight - HudTheme.ActionWidth;
+        _panel.OffsetRight = HudTheme.ActionRight;
+        _panel.OffsetTop = -288f;
+        _panel.OffsetBottom = -HudTheme.Margin;
         _panel.MouseFilter = Control.MouseFilterEnum.Stop;
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 12);
-        margin.AddThemeConstantOverride("margin_top", 10);
-        margin.AddThemeConstantOverride("margin_right", 12);
-        margin.AddThemeConstantOverride("margin_bottom", 10);
-        _panel.AddChild(margin);
+        HudTheme.ApplyPanel(_panel);
 
         var column = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         column.AddThemeConstantOverride("separation", 5);
-        margin.AddChild(column);
+        _panel.AddChild(column);
 
         _title.HorizontalAlignment = HorizontalAlignment.Center;
-        _title.AddThemeFontSizeOverride("font_size", 16);
+        _title.AddThemeFontSizeOverride("font_size", 13);
+        _title.AddThemeColorOverride("font_color", HudTheme.Accent);
         column.AddChild(_title);
 
         _actions.Alignment = BoxContainer.AlignmentMode.Center;
@@ -60,30 +61,36 @@ public sealed partial class TrainingMenu : CanvasLayer
         column.AddChild(_actions);
 
         _advanceAgeButton.Name = "AdvanceAge";
-        _advanceAgeButton.CustomMinimumSize = new Vector2(360f, 48f);
+        _advanceAgeButton.CustomMinimumSize = new Vector2(420f, 40f);
         _advanceAgeButton.Pressed += AdvanceAge;
         column.AddChild(_advanceAgeButton);
 
         _progress.MinValue = 0;
         _progress.MaxValue = 100;
         _progress.ShowPercentage = true;
-        _progress.CustomMinimumSize = new Vector2(360f, 18f);
+        _progress.CustomMinimumSize = new Vector2(420f, 16f);
         column.AddChild(_progress);
 
         _queue.HorizontalAlignment = HorizontalAlignment.Center;
+        _queue.AddThemeFontSizeOverride("font_size", 12);
+        _queue.AddThemeColorOverride("font_color", HudTheme.TextDim);
         column.AddChild(_queue);
+
         _status.HorizontalAlignment = HorizontalAlignment.Center;
-        _status.AddThemeColorOverride("font_color", new Color(0.92f, 0.80f, 0.38f));
+        _status.AddThemeFontSizeOverride("font_size", 12);
+        _status.AddThemeColorOverride("font_color", HudTheme.Accent);
         column.AddChild(_status);
 
         AddChild(_panel);
         _panel.Visible = false;
     }
 
-    public void Attach(SimulationWorld world, SelectionController selection, int localPlayerId)
+    public void Attach(SimulationWorld world, SelectionController selection, int localPlayerId,
+        NotificationFeed? notifications = null)
     {
         _world = world;
         _selection = selection;
+        _notifications = notifications;
         _localPlayerId = localPlayerId;
 
         foreach (string unitId in UnitIds)
@@ -94,12 +101,13 @@ public sealed partial class TrainingMenu : CanvasLayer
             var button = new Button
             {
                 Name = $"Train_{unitId}",
-                Text = $"{definition.DisplayName}\n{CostText(definition.Cost)}\n{definition.BuildTimeSeconds:0} s",
+                Text = $"{definition.DisplayName}\n{HudText.Cost(definition.Cost)}\n{definition.BuildTimeSeconds:0} s",
                 Icon = definition.Icon,
                 ExpandIcon = true,
-                CustomMinimumSize = new Vector2(160f, 112f),
+                CustomMinimumSize = new Vector2(126f, 104f),
                 TooltipText = definition.Description,
             };
+            button.AddThemeFontSizeOverride("font_size", 11);
             button.Pressed += () => QueueUnit(unitId);
             _buttons[unitId] = button;
             _actions.AddChild(button);
@@ -135,12 +143,12 @@ public sealed partial class TrainingMenu : CanvasLayer
                 : distinctBuildings < nextAge.RequiredDistinctBuildings
                     ? $"Benötigt {nextAge.RequiredDistinctBuildings} verschiedene fertige Gebäude"
                     : !player.CanAfford(nextAge.AdvanceCost)
-                        ? $"Nicht genügend Ressourcen: {CostText(nextAge.AdvanceCost)}"
+                        ? $"Nicht genügend Ressourcen: {HudText.Cost(nextAge.AdvanceCost)}"
                         : null;
 
             _advanceAgeButton.Text = building.IsResearchingAge
                 ? $"KUPFERZEIT WIRD ERFORSCHT • {building.AgeResearchLeft:0} s"
-                : $"KUPFERZEIT ERFORSCHEN • {CostText(nextAge.AdvanceCost)} • {nextAge.ResearchTimeSeconds:0} s";
+                : $"KUPFERZEIT ERFORSCHEN • {HudText.Cost(nextAge.AdvanceCost)} • {nextAge.ResearchTimeSeconds:0} s";
             _advanceAgeButton.Disabled = building.IsResearchingAge;
             _advanceAgeButton.Modulate = lockReason is null
                 ? Colors.White
@@ -194,7 +202,7 @@ public sealed partial class TrainingMenu : CanvasLayer
         }
         if (!player.CanAfford(nextAge.AdvanceCost))
         {
-            ShowFeedback($"Kupferzeit: Benötigt {CostText(nextAge.AdvanceCost)}");
+            ShowFeedback($"Kupferzeit: Benötigt {HudText.Cost(nextAge.AdvanceCost)}");
             return;
         }
 
@@ -211,6 +219,10 @@ public sealed partial class TrainingMenu : CanvasLayer
         _feedback = message;
         _feedbackSeconds = 3.0;
         _status.Text = message;
+
+        // The panel says it locally; the feed keeps it in view a moment longer, in
+        // case the selection changes right afterwards.
+        _notifications?.Post("training", message, HudTheme.Warning, 4f);
     }
 
     private int CountDistinctBuildings()
@@ -233,19 +245,5 @@ public sealed partial class TrainingMenu : CanvasLayer
         if (_world is null || building is null || building.IsUnderConstruction) return null;
         BuildingDefinition? definition = _world.Definitions.GetBuilding(building.DefinitionId);
         return definition?.TrainableUnitIds.Length > 0 ? building : null;
-    }
-
-    private static string CostText(ResourceSet? cost)
-    {
-        if (cost is null) return "Kostenlos";
-        var text = new StringBuilder();
-        foreach (ResourceType type in ResourceTypes.All)
-        {
-            int amount = cost[type];
-            if (amount <= 0) continue;
-            if (text.Length > 0) text.Append(" • ");
-            text.Append(amount).Append(' ').Append(ResourceTypes.DisplayName(type));
-        }
-        return text.Length > 0 ? text.ToString() : "Kostenlos";
     }
 }

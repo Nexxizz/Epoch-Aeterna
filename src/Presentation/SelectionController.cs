@@ -242,6 +242,16 @@ public sealed partial class SelectionController : Node
         _views?.SetSelected(id, false);
     }
 
+    /// <summary>Narrows the selection to a single entity — the selection panel uses it.</summary>
+    public void SelectOnly(EntityId id)
+    {
+        if (_world is null || !_world.Entities.Exists(id)) return;
+
+        ClearSelection();
+        Select(id);
+        RaiseChanged();
+    }
+
     private void ClearSelection()
     {
         foreach (EntityId id in _selection) _views?.SetSelected(id, false);
@@ -312,31 +322,40 @@ public sealed partial class SelectionController : Node
         _views?.FlashCommandMarker(target, MoveMarker);
     }
 
+    /// <summary>
+    /// Unit commands go through InputMap actions, so the options menu can rebind them.
+    /// Control groups stay on the digits — no strategy game rebinds those.
+    /// </summary>
     private void HandleKey(InputEventKey key)
     {
-        switch (key.Keycode)
+        if (key.IsActionPressed("cmd_stop"))
         {
-            case Key.S:
-                SendToSelection(new StopCommand { PlayerId = _localPlayerId, Units = _selection.ToArray() });
-                return;
+            SendToSelection(new StopCommand { PlayerId = _localPlayerId, Units = _selection.ToArray() });
+            return;
+        }
 
-            case Key.H:
-                SendToSelection(new SetStanceCommand
-                {
-                    PlayerId = _localPlayerId, Units = _selection.ToArray(), Stance = Stance.HoldPosition,
-                });
-                return;
+        if (key.IsActionPressed("cmd_hold"))
+        {
+            SendToSelection(new SetStanceCommand
+            {
+                PlayerId = _localPlayerId, Units = _selection.ToArray(), Stance = Stance.HoldPosition,
+            });
+            return;
+        }
 
-            case Key.D:
-                SendToSelection(new SetStanceCommand
-                {
-                    PlayerId = _localPlayerId, Units = _selection.ToArray(), Stance = Stance.Defensive,
-                });
-                return;
+        if (key.IsActionPressed("cmd_defensive"))
+        {
+            SendToSelection(new SetStanceCommand
+            {
+                PlayerId = _localPlayerId, Units = _selection.ToArray(), Stance = Stance.Defensive,
+            });
+            return;
+        }
 
-            case Key.A when !key.CtrlPressed:
-                BeginAttackMove();
-                return;
+        if (key.IsActionPressed("cmd_attack_move") && !key.CtrlPressed)
+        {
+            BeginAttackMove();
+            return;
         }
 
         int group = DigitToGroup(key.Keycode);

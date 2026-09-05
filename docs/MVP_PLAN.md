@@ -571,25 +571,34 @@ Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 
 ---
 
-## Phase 6 — UI / HUD 🔴
+## Phase 6 — UI / HUD ✅
 
-- [ ] Ressourcenleiste oben: Nahrung, Holz, Stein, Gold, Bevölkerung (aktuell/max), Zeitalter
-- [ ] Selektionspanel unten: Portrait, Name, HP, Werte; bei Mehrfachauswahl Icon-Gitter
-- [ ] Aktionsleiste: kontextabhängige Buttons (Bauen, Ausbilden, Aufsteigen, Stopp, Abriss) mit Tastenkürzeln
+- [x] Ressourcenleiste oben: Nahrung, Holz, Stein, Gold, Bevölkerung (aktuell/max), Zeitalter
+  — ereignisgetrieben statt pro Frame neu gebaut; das Limit färbt sich orange, sobald es erreicht ist
+- [x] Selektionspanel unten: Portrait, Name, HP, Werte; bei Mehrfachauswahl Icon-Gitter
+  — die Symbole sind anklickbar und schränken die Auswahl auf eine einzelne Einheit ein
+- [x] Aktionsleiste: kontextabhängige Buttons (Bauen, Ausbilden, Aufsteigen, Stopp, Abriss) mit Tastenkürzeln
   - [x] Rathaus: Siedlerbild, Kosten, Warteschlange und Ausbildungsfortschritt
   - [x] Rathaus: sichtbarer Kupferzeit-Aufstieg mit Kosten, Bauvoraussetzung und Forschungsfortschritt
   - [x] Kaserne: datengetriebene Ausbildung von Speer- und Schwertkämpfern samt Zeitaltersperre
   - [x] Schießstand: Schleuderer und Bogenschützen samt Kosten, Warteschlange und Zeitaltersperre
   - [x] Wachturm: Bauaktion mit Kupferzeitsperre und klaren Verteidigungswerten
+  - [x] Befehlsspalte rechts: Stopp, Stellung halten, Defensiv, Aggressiv und Abriss; die aktive
+    Haltung ist hervorgehoben, jede Beschriftung trägt ihre aktuelle Taste
 - [x] Bau-Menü mit Kosten-Tooltip; gesperrte Einträge sind abgedunkelt, bleiben für eine direkte
   Begründung anklickbar und erklären Kupferzeit, Kasernenvoraussetzung oder fehlende Ressourcen
-- [ ] Minimap: Terrain, Fog of War, eigene und feindliche Einheiten als Punkte, Kamera-Rahmen, Klick zum Springen
+  — die Karten entstehen aus den Gebäudedefinitionen, ein siebtes Gebäude braucht keine UI-Änderung
+- [x] Minimap: Terrain, Fog of War, eigene und feindliche Einheiten als Punkte, Kamera-Rahmen, Klick zum Springen
+  — ein Texel je Navigationszelle, Geländefarbe einmal gebacken, Nebel und Einheiten zehnmal je Sekunde darüber
 - [x] Produktionswarteschlange mit Fortschrittsbalken für das Rathaus
-- [ ] Benachrichtigungen: "Zu wenig Nahrung", "Bevölkerungslimit erreicht", "Wir werden angegriffen!"
-- [ ] Hauptmenü: Spiel starten, Optionen, Beenden
-- [ ] Optionen: Auflösung, Vollbild, Lautstärke, Grafik-Preset, Scroll-Geschwindigkeit
-- [ ] Pause-Menü (ESC)
-- [ ] 🟢 Tastenkürzel frei belegbar
+- [x] Benachrichtigungen: "Zu wenig Nahrung", "Bevölkerungslimit erreicht", "Wir werden angegriffen!"
+  — jede Meldung mit eigener Sperrzeit, Angriffe setzen zusätzlich eine Markierung auf die Minimap
+- [x] Hauptmenü: Spiel starten, Optionen, Beenden
+- [x] Optionen: Auflösung, Vollbild, Lautstärke, Grafik-Preset, Scroll-Geschwindigkeit
+  — jede Änderung wirkt sofort und landet in `user://settings.cfg`
+- [x] Pause-Menü (ESC): Weiter, Optionen, Neues Spiel, Hauptmenü, Beenden
+- [x] 🟢 Tastenkürzel frei belegbar — alle Befehle laufen über InputMap-Aktionen, die Optionen
+  schreiben sie um; gespeichert werden physische Keycodes, damit die Belegung auf QWERTZ sitzt
 
 ---
 

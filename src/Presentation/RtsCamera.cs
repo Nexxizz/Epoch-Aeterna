@@ -44,6 +44,9 @@ public sealed partial class RtsCamera : Node3D
     /// <summary>Edge scrolling gets in the way when developing in windowed mode — switchable.</summary>
     public bool EdgeScrollEnabled { get; set; } = true;
 
+    /// <summary>Multiplier on the pan speed, set from the options. 1 = default.</summary>
+    public float PanSpeedScale { get; set; } = 1f;
+
     public Camera3D Camera => _camera;
 
     /// <summary>The point being looked at on the XZ plane.</summary>
@@ -118,7 +121,7 @@ public sealed partial class RtsCamera : Node3D
         {
             // Panning scales with zoom level: far out you cover more ground.
             float scale = Mathf.Lerp(0.55f, 1.4f, Mathf.InverseLerp(MinDistance, MaxDistance, _distance));
-            _focus += Rotate(pan.Normalized() * PanSpeed * scale * dt, _yaw);
+            _focus += Rotate(pan.Normalized() * PanSpeed * scale * PanSpeedScale * dt, _yaw);
         }
 
         if (Input.IsActionPressed("camera_rotate_left")) _yaw -= RotateSpeed * dt;

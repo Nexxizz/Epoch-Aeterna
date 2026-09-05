@@ -8,8 +8,13 @@ using EpochAeterna.Core.Systems;
 namespace EpochAeterna.Presentation;
 
 /// <summary>
-/// Temporary status display until the full HUD is introduced in phase 6.
+/// Diagnostic readout: tick, frame rate, entity and path counts.
 /// </summary>
+/// <remarks>
+/// Since the HUD of phase 6 shows resources, population and age properly, this
+/// overlay is a development tool rather than an interface. It stays hidden until
+/// the diagnosis key switches it on.
+/// </remarks>
 public sealed partial class DebugOverlay : CanvasLayer
 {
     private readonly Label _label = new();
@@ -27,13 +32,19 @@ public sealed partial class DebugOverlay : CanvasLayer
     public override void _Ready()
     {
         Layer = 2;
-        _label.Position = new Vector2(16, 12);
+        Visible = false;
+
+        // Below the resource bar, which owns the top edge.
+        _label.Position = new Vector2(16, 64);
         _label.AddThemeFontSizeOverride("font_size", 14);
         _label.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f));
         _label.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.85f));
         _label.AddThemeConstantOverride("outline_size", 5);
         AddChild(_label);
     }
+
+    /// <summary>Switches the readout on and off — bound to the diagnosis key.</summary>
+    public void Toggle() => Visible = !Visible;
 
     public void Attach(SimulationWorld world, SimulationRunner runner, SelectionController selection,
         BuildPlacementController placement, int localPlayerId)
@@ -50,10 +61,10 @@ public sealed partial class DebugOverlay : CanvasLayer
 
     public override void _Process(double delta)
     {
-        if (_world is null || _runner is null) return;
+        if (!Visible || _world is null || _runner is null) return;
 
         _builder.Clear();
-        _builder.AppendLine("Epoch Aeterna — Phase 3 (Economy, Construction, Combat, Ages)");
+        _builder.AppendLine("Epoch Aeterna — diagnostics");
 
         _builder.Append("Tick ").Append(_world.CurrentTick)
                 .Append("   Time ").Append((_world.ElapsedSeconds / 60f).ToString("0.0")).Append(" min")
