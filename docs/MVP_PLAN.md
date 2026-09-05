@@ -535,7 +535,7 @@ Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footpri
 | # | Einheit | Zeitalter | Rolle | Status |
 |---|---|---|---|---|
 | 1 | **Siedler** | 1 | Sammeln, Bauen, Reparieren | [x] Modell [x] Rig [x] Anims [x] Ingame |
-| 2 | **Späher** | 1 | Schnell, große Sicht, schwach | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
+| 2 | **Späher** | 1 | Schnell, große Sicht, schwach | [x] Modell [x] Rig [x] Anims [x] Ingame |
 | 3 | **Speerkämpfer** | 1 | Nahkampf-Grundeinheit | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
 | 4 | **Schleuderer** | 1 | Fernkampf, schwach im Nahkampf | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
 | 5 | **Schwertkämpfer** | 2 | Starker Nahkampf | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
@@ -543,6 +543,10 @@ Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footpri
 
 Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 — Siedler zusätzlich: `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Carry_Walk`
+
+Späher: leichte Fellkleidung, Reisetasche, Stirnband in Spielerfarbe und Steinkeule;
+alle fünf Clips, Portrait und Rathaus-Ausbildung eingebunden. Blender-Quelle und
+Prüfbefehle: `docs/SCOUT_ASSET.md`.
 
 - [x] Gemeinsames Skelett und Clip-Vokabular in `lib_rig` / `lib_anim` — eine einmal angelegte
   Bewegung läuft auf jeder humanoiden Einheit

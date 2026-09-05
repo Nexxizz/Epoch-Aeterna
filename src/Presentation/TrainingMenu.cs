@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using EpochAeterna.Core.Data;
 using EpochAeterna.Core.Entities;
@@ -10,9 +11,6 @@ namespace EpochAeterna.Presentation;
 /// <summary>Context menu for every selected building that can train units.</summary>
 public sealed partial class TrainingMenu : CanvasLayer
 {
-    private static readonly string[] UnitIds =
-        { "unit_settler", "unit_spearman", "unit_swordsman", "unit_slinger", "unit_archer" };
-
     private readonly PanelContainer _panel = new();
     private readonly Label _title = new();
     private readonly HBoxContainer _actions = new();
@@ -93,7 +91,8 @@ public sealed partial class TrainingMenu : CanvasLayer
         _notifications = notifications;
         _localPlayerId = localPlayerId;
 
-        foreach (string unitId in UnitIds)
+        foreach (string unitId in world.Definitions.Buildings.Values
+                     .SelectMany(building => building.TrainableUnitIds).Distinct())
         {
             UnitDefinition? definition = world.Definitions.GetUnit(unitId);
             if (definition is null) continue;

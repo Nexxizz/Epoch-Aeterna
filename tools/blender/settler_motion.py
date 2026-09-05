@@ -236,10 +236,10 @@ CLIPS = [('Idle',120,idle,None),('Walk',32,lambda p,t:gait(p,t),None),
     ('Death',72,death,None)]
 
 
-def build(rig):
+def build(rig, clips=None):
     rig.animation_data_create()
     pose=Pose(rig)
-    for name,length,animate,prop in CLIPS:
+    for name,length,animate,prop in CLIPS if clips is None else clips:
         action=bpy.data.actions.new(name);action.use_fake_user=True
         rig.animation_data.action=action
         for track in rig.animation_data.nla_tracks: track.mute=True

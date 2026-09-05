@@ -41,6 +41,7 @@ ASSETS = [
     "bld_range",
     "bld_tower",
     "unit_settler",
+    "unit_scout",
 ]
 
 

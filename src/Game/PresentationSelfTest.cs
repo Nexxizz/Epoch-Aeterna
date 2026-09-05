@@ -106,6 +106,70 @@ public partial class PresentationSelfTest : Node
             fallback.Bind(new Unit(), runner, world.Nav, new Node3D(), world.Random);
             Check("Models without Death retain immediate-removal fallback", !fallback.BeginDeath());
             fallback.QueueFree();
+
+            runner.TimeScale = 1;
+            Unit scout = world.SpawnUnit("unit_scout", 1, Vector2.Zero)!;
+            world.FlushSpawns();
+            EntityView scoutView = manager.Views.Single().View;
+            scoutView.SetProcess(false);
+            AnimationPlayer scoutPlayer = Find<AnimationPlayer>(scoutView)!;
+            Check("Scout uses the imported animated model", scoutPlayer is not null);
+            foreach (string clip in new[] { "Idle", "Walk", "Run", "Attack", "Death" })
+                Check($"Scout imports {clip}", scoutPlayer!.HasAnimation(clip)
+                    && scoutPlayer.GetAnimation(clip).GetTrackCount() > 10);
+            scout.OrderMoveTo(new Vector2(5, 0));
+            scout.Path.Add(new Vector2(5, 0));
+            scout.Position = new Vector2(.26f, 0);
+            scoutView._Process(0);
+            Check("Scout runs at scouting speed", scoutPlayer!.AssignedAnimation == ModelAnimator.Run);
+            scout.Stop();
+            scout.Order = UnitOrder.Attack;
+            scoutView._Process(0);
+            Check("Scout selects club attack", scoutPlayer.AssignedAnimation == ModelAnimator.Attack);
+            world.ApplyDamage(scout, 1000, DamageType.Blunt, 2);
+            world.Entities.Flush();
+            Check("Scout death leaves an animated corpse", !scoutView.IsQueuedForDeletion()
+                && scoutPlayer.AssignedAnimation == ModelAnimator.Death);
+            Check("Scout death does not loop", scoutPlayer.GetAnimation("Death").LoopMode == Animation.LoopModeEnum.None);
+
+            // Exercise the real menu: a valid training definition alone does not
+            // guarantee that players can see or click its button.
+            var owner = new Player { Id = 1, Name = "Menu test", Color = Colors.Blue };
+            owner.SetResource(ResourceType.Food, 500);
+            owner.SetResource(ResourceType.Wood, 500);
+            world.AddPlayer(owner);
+            var camera = new RtsCamera();
+            var selection = new SelectionController();
+            AddChild(camera);
+            AddChild(selection);
+            selection.Attach(world, camera, manager, 1);
+            var menu = new TrainingMenu();
+            AddChild(menu);
+            menu.Attach(world, selection, 1);
+            foreach (string buildingId in new[] { "bld_towncenter", "bld_barracks", "bld_range" })
+            {
+                Building building = world.SpawnBuilding(buildingId, 1, Vector2.Zero)!;
+                world.FlushSpawns();
+                selection.SelectOnly(building.Id);
+                menu._Process(0);
+                string[] offered = definitions.GetBuilding(buildingId)!.TrainableUnitIds;
+                foreach (string unitId in definitions.Units.Keys)
+                {
+                    Button? button = menu.FindChild($"Train_{unitId}", true, false) as Button;
+                    Check($"{buildingId} menu visibility for {unitId}",
+                        (button?.IsVisibleInTree() == true) == offered.Contains(unitId));
+                }
+                if (buildingId == "bld_towncenter")
+                {
+                    var button = (Button)menu.FindChild("Train_unit_scout", true, false);
+                    Check("Scout training button is enabled and has a portrait", !button.Disabled && button.Icon is not null);
+                    button.EmitSignal(BaseButton.SignalName.Pressed);
+                    world.Tick();
+                    Check("Scout button queues scout training", building.Queue.Count == 1
+                        && building.CurrentOrder!.UnitDefinitionId == "unit_scout");
+                    Check("Scout training costs 30 food", owner.GetResource(ResourceType.Food) == 470);
+                }
+            }
             GD.Print($"All {_checks} presentation checks passed.");
             GetTree().Quit(0);
         }
