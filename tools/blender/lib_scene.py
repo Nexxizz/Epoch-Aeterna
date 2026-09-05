@@ -92,6 +92,7 @@ def export_glb(objects, category: str, name: str) -> str:
             export_normals=True,
             export_tangents=False,
             export_materials="EXPORT",
+            export_vertex_color="ACTIVE",
             export_cameras=False,
             export_lights=False,
         )

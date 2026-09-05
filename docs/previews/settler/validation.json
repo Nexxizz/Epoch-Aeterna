@@ -1,0 +1,59 @@
+{
+  "Idle": {
+    "seconds": 4.0,
+    "loop_error": 0.0
+  },
+  "Walk": {
+    "seconds": 1.0666666666666667,
+    "loop_error": 0.0
+  },
+  "Run": {
+    "seconds": 0.8,
+    "loop_error": 0.0
+  },
+  "Carry_Walk": {
+    "seconds": 1.2,
+    "loop_error": 0.0
+  },
+  "Carry_Run": {
+    "seconds": 0.9333333333333333,
+    "loop_error": 0.0
+  },
+  "Gather_Food": {
+    "seconds": 2.4,
+    "loop_error": 0.0
+  },
+  "Gather_Chop": {
+    "seconds": 1.6,
+    "loop_error": 0.0
+  },
+  "Gather_Mine": {
+    "seconds": 1.8,
+    "loop_error": 0.0
+  },
+  "Attack": {
+    "seconds": 2.0,
+    "loop_error": 0.0
+  },
+  "Build": {
+    "seconds": 1.6,
+    "loop_error": 0.0
+  },
+  "Death": {
+    "seconds": 2.4,
+    "loop_error": 2.0,
+    "lowest_point_during_fall": 0.00599996093660593,
+    "final_bounds": {
+      "min": [
+        -0.44984865188598633,
+        -0.9925751090049744,
+        0.017999976873397827
+      ],
+      "max": [
+        0.4521571397781372,
+        0.875476062297821,
+        0.43817412853240967
+      ]
+    }
+  }
+}

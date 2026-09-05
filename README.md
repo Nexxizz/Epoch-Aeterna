@@ -122,6 +122,11 @@ Then import into Godot:
 "C:/Godot/Godot_v4.7.2-stable_mono_win64_console.exe" --headless --editor --quit --path .
 ```
 
+The settler generator also saves `blender/unit_settler.blend`, with an editable
+rig and eleven actions. Native sources are excluded from Godot's importer; the
+game uses the exported GLB. See [the settler asset notes](docs/SETTLER_ASSET.md)
+for animation previews, timings and the presentation test.
+
 ### Conventions
 
 | Rule | Value |

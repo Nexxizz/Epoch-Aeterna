@@ -70,11 +70,13 @@ def humanoid(name: str, height: float = 1.8):
             at(PROPORTIONS["shoulder"], shoulder),
             at(PROPORTIONS["elbow"], shoulder),
             chest)
-        bone(
+        forearm = bone(
             f"arm_lower.{side}",
             at(PROPORTIONS["elbow"], shoulder),
             at(PROPORTIONS["hand"], shoulder),
             upper)
+        bone(f"hand.{side}", at(PROPORTIONS["hand"], shoulder),
+             at(0.405, shoulder), forearm)
 
         hip = sign * HIP_WIDTH
         thigh = bone(
@@ -82,22 +84,24 @@ def humanoid(name: str, height: float = 1.8):
             at(PROPORTIONS["hips"], hip),
             at(PROPORTIONS["knee"], hip),
             hips)
-        bone(
+        shin = bone(
             f"leg_lower.{side}",
             at(PROPORTIONS["knee"], hip),
             at(PROPORTIONS["foot"], hip),
             thigh)
+        bone(f"foot.{side}", at(PROPORTIONS["foot"], hip),
+             at(PROPORTIONS["foot"], hip, -0.17), shin)
 
     # Equipment slots are regular bones so a single exported model can carry
     # several task-specific props and reveal only the one used by an animation.
     # They inherit the hand movement, while their own scale controls visibility.
-    right_forearm = armature_data.edit_bones["arm_lower.R"]
+    right_hand = armature_data.edit_bones["hand.R"]
     bone("tool_axe", at(0.57, -SHOULDER_WIDTH, -0.01),
-         at(0.38, -SHOULDER_WIDTH, -0.01), right_forearm)
+         at(0.38, -SHOULDER_WIDTH, -0.01), right_hand)
     bone("tool_pick", at(0.57, -SHOULDER_WIDTH, -0.01),
-         at(0.38, -SHOULDER_WIDTH, -0.01), right_forearm)
+         at(0.38, -SHOULDER_WIDTH, -0.01), right_hand)
     bone("tool_spear", at(0.70, -SHOULDER_WIDTH, -0.01),
-         at(0.20, -SHOULDER_WIDTH, -0.01), right_forearm)
+         at(0.20, -SHOULDER_WIDTH, -0.01), right_hand)
     bone("tool_basket", at(0.70, 0.0, 0.22),
          at(0.48, 0.0, 0.22), chest)
 

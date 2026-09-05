@@ -21,6 +21,10 @@ public sealed partial class EntityView : Node3D
     private ModelAnimator? _animator;
     private MeshInstance3D? _selectionRing;
     private HealthBar? _healthBar;
+    private bool _dying;
+    private double _corpseTimeLeft;
+    private const double CorpseHoldSeconds = 3.0;
+    private const double CorpseSinkSeconds = 0.8;
 
     public EntityId EntityId => _entity?.Id ?? EntityId.None;
 
@@ -52,11 +56,37 @@ public sealed partial class EntityView : Node3D
     public override void _Process(double delta)
     {
         if (_entity is null || _runner is null) return;
+        _animator?.SetTimeScale(_runner.TimeScale);
+
+        if (_dying)
+        {
+            double elapsed = delta * _runner.TimeScale;
+            _corpseTimeLeft -= elapsed;
+            if (_corpseTimeLeft <= CorpseSinkSeconds && _model is not null)
+                _model.Position -= Vector3.Up * (float)(elapsed * 0.45 / CorpseSinkSeconds);
+            if (_corpseTimeLeft <= 0) QueueFree();
+            return;
+        }
 
         SyncTransform(_runner.IsPaused ? 1f : _runner.InterpolationAlpha);
         SyncHealthBar();
 
         if (_entity is Unit unit) _animator?.Sync(unit);
+    }
+
+    /// <summary>Keep only the visual corpse; simulation and selection remove it immediately.</summary>
+    public bool BeginDeath()
+    {
+        if (_dying) return true;
+        if (_entity is not Unit || _animator is null) return false;
+        double duration = _animator.PlayDeath();
+        if (duration <= 0) return false;
+        _dying = true;
+        _corpseTimeLeft = duration + CorpseHoldSeconds + CorpseSinkSeconds;
+        SyncTransform(1f);
+        SetSelected(false);
+        if (_healthBar is not null) _healthBar.Visible = false;
+        return true;
     }
 
     private void SyncTransform(float alpha)

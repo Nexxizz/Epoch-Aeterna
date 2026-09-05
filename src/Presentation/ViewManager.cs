@@ -22,6 +22,7 @@ public sealed partial class ViewManager : Node3D
     private const float MarkerLifetime = 0.6f;
 
     private readonly Dictionary<int, EntityView> _views = new();
+    private readonly List<EntityView> _corpses = new();
     private readonly Dictionary<int, StandardMaterial3D> _playerMaterials = new();
 
     private SimulationWorld? _world;
@@ -30,7 +31,7 @@ public sealed partial class ViewManager : Node3D
     private MeshInstance3D? _commandMarker;
     private float _markerTimeLeft;
 
-    /// <summary>Every living view with its entity — the fog needs both.</summary>
+    /// <summary>Living views and visual corpses, so fog still hides both.</summary>
     public IEnumerable<(Entity Entity, EntityView View)> Views
     {
         get
@@ -39,6 +40,9 @@ public sealed partial class ViewManager : Node3D
             {
                 if (view.Entity is { } entity) yield return (entity, view);
             }
+            foreach (EntityView view in _corpses)
+                if (GodotObject.IsInstanceValid(view) && view.Entity is { } entity)
+                    yield return (entity, view);
         }
     }
 
@@ -69,6 +73,7 @@ public sealed partial class ViewManager : Node3D
 
     public override void _Process(double delta)
     {
+        _corpses.RemoveAll(view => !GodotObject.IsInstanceValid(view));
         if (_markerTimeLeft <= 0f || _commandMarker is null) return;
 
         _markerTimeLeft -= (float)delta;
@@ -137,7 +142,8 @@ public sealed partial class ViewManager : Node3D
     private void OnEntityRemoved(Entity entity)
     {
         if (!_views.Remove(entity.Id.Value, out EntityView? view)) return;
-        view.QueueFree();
+        if (view.BeginDeath()) _corpses.Add(view);
+        else view.QueueFree();
     }
 
     /// <summary>Stage reached or finished — the model is swapped.</summary>

@@ -1,6 +1,7 @@
 using Godot;
 using EpochAeterna.Core.Data;
 using EpochAeterna.Core.Entities;
+using EpochAeterna.Core.Simulation;
 
 namespace EpochAeterna.Presentation;
 
@@ -9,7 +10,7 @@ namespace EpochAeterna.Presentation;
 /// </summary>
 /// <remarks>
 /// The clip names are the contract with the Blender pipeline: whatever
-/// <c>lib_anim.py</c> pushes onto an NLA strip arrives here under the same name.
+/// <c>settler_motion.py</c> pushes onto an NLA strip arrives here under the same name.
 /// A model without an AnimationPlayer — every placeholder, and every asset not
 /// yet rebuilt — simply does nothing, so this never has to be guarded for.
 /// </remarks>
@@ -19,6 +20,7 @@ public sealed class ModelAnimator
     public const string Walk = "Walk";
     public const string Run = "Run";
     public const string Carry = "Carry_Walk";
+    public const string CarryRun = "Carry_Run";
     public const string GatherFood = "Gather_Food";
     public const string Chop = "Gather_Chop";
     public const string Mine = "Gather_Mine";
@@ -28,10 +30,13 @@ public sealed class ModelAnimator
 
     /// <summary>Clips that should repeat rather than freeze on their last frame.</summary>
     private static readonly string[] Looping =
-        { Idle, Walk, Run, Carry, GatherFood, Chop, Mine, Build, Attack };
+        { Idle, Walk, Run, Carry, CarryRun, GatherFood, Chop, Mine, Build, Attack };
 
     private readonly AnimationPlayer? _player;
     private string _current = string.Empty;
+    private bool _dying;
+    private float _timeScale = 1f;
+    private float _strideScale = 1f;
 
     public bool IsAvailable => _player is not null;
 
@@ -54,7 +59,11 @@ public sealed class ModelAnimator
     /// <summary>Chooses and plays the clip for the unit's current state.</summary>
     public void Sync(Unit unit)
     {
-        if (_player is null) return;
+        if (_player is null || _dying) return;
+
+        float speed = unit.Position.DistanceTo(unit.PreviousPosition) / SimulationWorld.TickDelta;
+        // Hysteresis prevents walk/run flicker while slowing down or turning.
+        bool jogging = speed > (_current is Run or CarryRun ? 1.3f : 1.6f);
 
         string wanted = unit switch
         {
@@ -65,16 +74,41 @@ public sealed class ModelAnimator
             { Order: UnitOrder.Gather, GatherPhase: GatherPhase.Harvesting } => Mine,
             { Order: UnitOrder.Build } when !unit.HasPath => Build,
             { Order: UnitOrder.Attack } when !unit.HasPath => Attack,
-            { Order: UnitOrder.AttackMove } when unit.HasPath => Run,
+            _ when unit.HasPath && unit.CarriedAmount > 0f && jogging && _player.HasAnimation(CarryRun) => CarryRun,
             _ when unit.HasPath && unit.CarriedAmount > 0f => Carry,
+            _ when unit.HasPath && jogging => Run,
             _ when unit.HasPath => Walk,
             _ => Idle,
         };
 
         Play(wanted);
+        // Match the backwards travel of a planted foot to world movement.
+        float authoredSpeed = wanted switch
+        {
+            Walk => 0.847f, Run => 1.979f, Carry => 0.753f, CarryRun => 1.696f,
+            _ => 0f,
+        };
+        _strideScale = authoredSpeed > 0 ? Mathf.Clamp(speed / authoredSpeed, 0.05f, 2f) : 1f;
+        _player.SpeedScale = _timeScale * _strideScale;
     }
 
-    public void PlayDeath() => Play(Death);
+    /// <summary>Stops orders from replacing Death; returns its actual imported duration.</summary>
+    public double PlayDeath()
+    {
+        if (_player is null || !_player.HasAnimation(Death)) return 0;
+        _dying = true;
+        _strideScale = 1f;
+        _player.SpeedScale = _timeScale;
+        _player.GetAnimation(Death).LoopMode = Animation.LoopModeEnum.None;
+        Play(Death);
+        return _player.GetAnimation(Death).Length;
+    }
+
+    public void SetTimeScale(float scale)
+    {
+        _timeScale = scale;
+        if (_player is not null) _player.SpeedScale = scale * _strideScale;
+    }
 
     private void Play(string name)
     {
@@ -82,7 +116,7 @@ public sealed class ModelAnimator
         if (!_player.HasAnimation(name)) return;
 
         _current = name;
-        _player.Play(name);
+        _player.Play(name, customBlend: name == Death ? 0.08 : 0.16);
     }
 
     private void ConfigureLoops()

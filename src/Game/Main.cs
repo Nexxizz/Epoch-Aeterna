@@ -40,6 +40,12 @@ public partial class Main : Node3D
 
         _definitions.LoadAll();
 
+        if (System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--verify-presentation") >= 0)
+        {
+            AddChild(new PresentationSelfTest());
+            return;
+        }
+
         if (System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--verify") >= 0)
         {
             GetTree().Quit(SelfTest.Run(_definitions));
