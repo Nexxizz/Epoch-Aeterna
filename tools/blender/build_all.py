@@ -42,6 +42,10 @@ ASSETS = [
     "bld_tower",
     "unit_settler",
     "unit_scout",
+    "unit_spearman",
+    "unit_slinger",
+    "unit_swordsman",
+    "unit_archer",
 ]
 
 

@@ -1,0 +1,32 @@
+{
+  "Attack": {
+    "seconds": 1.8,
+    "loop_error": 0.0,
+    "minimum_z": 0.005999953951686621,
+    "connection_error": 2.457562461863554e-07
+  },
+  "Death": {
+    "seconds": 2.4,
+    "loop_error": 2.0000001192092896,
+    "minimum_z": 0.00599996093660593,
+    "connection_error": 3.554481399618555e-07
+  },
+  "Idle": {
+    "seconds": 4.0,
+    "loop_error": 2.9923767375182496e-18,
+    "minimum_z": 0.005999904591590166,
+    "connection_error": 9.541398640621973e-08
+  },
+  "Run": {
+    "seconds": 0.8,
+    "loop_error": 6.412235452520229e-18,
+    "minimum_z": 0.0029999949038028717,
+    "connection_error": 1.744136200952474e-07
+  },
+  "Walk": {
+    "seconds": 1.0666666666666667,
+    "loop_error": 6.412235452520229e-18,
+    "minimum_z": 0.002999916672706604,
+    "connection_error": 1.7516238862334226e-07
+  }
+}

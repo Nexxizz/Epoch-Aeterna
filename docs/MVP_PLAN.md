@@ -536,10 +536,10 @@ Pro Gebäude zusätzlich: 3 Baustufen, Trümmer-Mesh, Icon, Platzierungs-Footpri
 |---|---|---|---|---|
 | 1 | **Siedler** | 1 | Sammeln, Bauen, Reparieren | [x] Modell [x] Rig [x] Anims [x] Ingame |
 | 2 | **Späher** | 1 | Schnell, große Sicht, schwach | [x] Modell [x] Rig [x] Anims [x] Ingame |
-| 3 | **Speerkämpfer** | 1 | Nahkampf-Grundeinheit | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
-| 4 | **Schleuderer** | 1 | Fernkampf, schwach im Nahkampf | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
-| 5 | **Schwertkämpfer** | 2 | Starker Nahkampf | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
-| 6 | **Bogenschütze** | 2 | Starker Fernkampf | [ ] Modell [ ] Rig [ ] Anims [ ] Ingame |
+| 3 | **Speerkämpfer** | 1 | Nahkampf-Grundeinheit | [x] Modell [x] Rig [x] Anims [x] Ingame |
+| 4 | **Schleuderer** | 1 | Fernkampf, schwach im Nahkampf | [x] Modell [x] Rig [x] Anims [x] Ingame |
+| 5 | **Schwertkämpfer** | 2 | Starker Nahkampf | [x] Modell [x] Rig [x] Anims [x] Ingame |
+| 6 | **Bogenschütze** | 2 | Starker Fernkampf | [x] Modell [x] Rig [x] Anims [x] Ingame |
 
 Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 — Siedler zusätzlich: `Gather_Food`, `Gather_Chop`, `Gather_Mine`, `Build`, `Carry_Walk`
@@ -547,6 +547,22 @@ Animationssatz pro Einheit: `Idle`, `Walk`, `Run`, `Attack`, `Death`
 Späher: leichte Fellkleidung, Reisetasche, Stirnband in Spielerfarbe und Steinkeule;
 alle fünf Clips, Portrait und Rathaus-Ausbildung eingebunden. Blender-Quelle und
 Prüfbefehle: `docs/SCOUT_ASSET.md`.
+
+Speerkämpfer: verstärkte Lederkleidung, Schulterfell, Spielerfarben und langer
+Feuersteinspeer mit zweihändigem Stoß; alle fünf Clips, Portrait und
+Kasernenausbildung eingebunden. Quelle und Prüfungen: `docs/SPEARMAN_ASSET.md`.
+
+Schleuderer: leichte Lederkleidung, Steinbeutel und animierte Zweistrangschleuder
+mit Öffnen und Nachladen; fünf Clips, Portrait und Schießstand-Ausbildung
+eingebunden. Quelle und Prüfungen: `docs/SLINGER_ASSET.md`.
+
+Schwertkämpfer: Kupferschwert, Rundschild, Helm und Brustpanzer; fünf Clips,
+Portrait und Kasernenausbildung mit Kupferzeit-Freischaltung eingebunden.
+Quelle und Prüfungen: `docs/SWORDSMAN_ASSET.md`.
+
+Bogenschütze: Armschutz, Rückenköcher und animierter Bogen mit beweglichen
+Wurfarmen, Sehne und aufgelegtem Pfeil; fünf Clips, Portrait und
+Schießstand-Ausbildung ab Kupferzeit. Quelle und Prüfungen: `docs/ARCHER_ASSET.md`.
 
 - [x] Gemeinsames Skelett und Clip-Vokabular in `lib_rig` / `lib_anim` — eine einmal angelegte
   Bewegung läuft auf jeder humanoiden Einheit

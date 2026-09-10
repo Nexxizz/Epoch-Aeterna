@@ -1,0 +1,32 @@
+{
+  "Attack": {
+    "seconds": 2.0,
+    "loop_error": 0.0,
+    "minimum_z": 0.005999952554702759,
+    "grip_error": 0
+  },
+  "Death": {
+    "seconds": 2.4,
+    "loop_error": 2.0000001192092896,
+    "minimum_z": 0.00599996093660593,
+    "grip_error": 6.365778852490731e-08
+  },
+  "Idle": {
+    "seconds": 4.0,
+    "loop_error": 2.9923767375182496e-18,
+    "minimum_z": 0.005999904591590166,
+    "grip_error": 0
+  },
+  "Run": {
+    "seconds": 0.8,
+    "loop_error": 2.2378025484329417e-16,
+    "minimum_z": 0.0029999949038028717,
+    "grip_error": 5.960464477539063e-08
+  },
+  "Walk": {
+    "seconds": 1.0666666666666667,
+    "loop_error": 2.2378025484329417e-16,
+    "minimum_z": 0.002999916672706604,
+    "grip_error": 5.960464477539063e-08
+  }
+}
