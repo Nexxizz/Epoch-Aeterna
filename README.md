@@ -5,6 +5,10 @@ raise an army, and advance through the ages.
 
 The detailed implementation plan is available in **[docs/MVP_PLAN.md](docs/MVP_PLAN.md)**.
 
+## Demo
+
+https://github.com/Nexxizz/Epoch-Aeterna/raw/main/demo/Epoch%20Aeterna.mp4
+
 ---
 
 ## Toolchain
