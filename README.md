@@ -7,7 +7,9 @@ The detailed implementation plan is available in **[docs/MVP_PLAN.md](docs/MVP_P
 
 ## Demo
 
-https://github.com/Nexxizz/Epoch-Aeterna/raw/main/demo/Epoch%20Aeterna.mp4
+
+https://github.com/user-attachments/assets/130f54c9-739f-427e-8d99-5a472f835d1d
+
 
 ---
 
